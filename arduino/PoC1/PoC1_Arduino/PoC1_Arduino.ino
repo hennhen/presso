@@ -12,44 +12,65 @@
 #define kI 3
 #define kD 0
 
-#define START_BYTE 0x02
+#define COBS_FLAG 0x00
+#define COMMAND_START_BYTE 0x02
+
+enum Commands {
+  SET_MOTOR_SPEED = 1,
+  SET_PID_VALUES = 2,
+  SET_PRESSURE = 3,
+  STOP = 4
+};
 
 PacketSerial pSerial;
 
 PressureSensor pSensor(pressurePin);
-CytronController motor(pwmPin, dirPin); 
+CytronController motor(pwmPin, dirPin);
 PIDController pidController(motor, pSensor);
 
 float pressure;
-uint8_t outBuffer[4]; // floats are 4-bytes each in Ardiuno
+uint8_t outBuffer[4];  // floats are 4-bytes each in Ardiuno
+const float confirm_float = 999.999;
 
 void setup() {
   pidController.setParameters(PRESSURE_SETPOINT, kP, kI, kD);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
 
-  pSerial.begin(9600);  // Start the serial communication
+  pSerial.begin(115200);  // Start the serial communication
   // Serial.begin(9600);
-  // pSerial.setPacketHandler(&onPacketReceived);
-
+  pSerial.setPacketHandler(&onPacketReceived);
 }
 
 void loop() {
-  pressure = pSensor.readPressure();
-  pidController.update();
+  // pressure = pSensor.readPressure();
+  pSerial.update();
+  // pidController.update();
 
-  memcpy(outBuffer, &pressure, sizeof(pressure));
-  pSerial.send(outBuffer, sizeof(outBuffer));
-  delay(20);
+  // memcpy(outBuffer, &pressure, sizeof(pressure));
+  // pSerial.send(outBuffer, sizeof(outBuffer));
+  delay(1);
 }
 
-void onPacketReceived(const uint8_t* buffer, size_t size)
-{
-  // Make a temporary buffer.
-  uint8_t tempBuffer[size];
+void onPacketReceived(const uint8_t* buffer, size_t size) {
+  if (size == sizeof(short) + sizeof(float)) {
+    // // Create variables to hold the extracted data
+    short command;
+    float value;
 
-  // Send the reversed buffer back to the sender. The send() method will encode
-  // the whole buffer as as single packet, set packet markers, etc.
-  // The `tempBuffer` is a pointer to the `tempBuffer` array and `size` is the
-  // number of bytes to send in the `tempBuffer`.
+    // // Extract the integer (first 4 bytes)
+    memcpy(&command, buffer, sizeof(short));
+    memcpy(&value, buffer + sizeof(short), sizeof(float));
 
-  // myPacketSerial.send(tempBuffer, size);
+    pSerial.send(reinterpret_cast<uint8_t*>(&value), sizeof(float));
+
+    if (value == 4.7) {
+      for (size_t i = 0; i < 2; ++i) {
+        digitalWrite(LED_BUILTIN, HIGH);  // Turn the LED on
+        delay(200);                       // Wait for 500 milliseconds
+        digitalWrite(LED_BUILTIN, LOW);   // Turn the LED off
+        delay(200);                       // Wait for 500 milliseconds
+      }
+    }
+  }
 }

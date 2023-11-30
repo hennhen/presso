@@ -16,7 +16,6 @@ ports = list(serial.tools.list_ports.comports())
 arduino_port = None
 
 zeroByte = b'\x00' # COBS 1-byte delimiter is hex zero as a (binary) bytes character
-START_BYTE = b'\x02'
 
 class Order(Enum):
     """
@@ -44,7 +43,7 @@ try:
             break
     
     if arduino_port:
-        arduino_serial = serial.Serial(port=arduino_port, baudrate=9600)
+        arduino_serial = serial.Serial(port=arduino_port, baudrate=115200, timeout=None)
         if not arduino_serial.is_open:
                 raise Exception("Failed to open serial connection to Arduino")
         print(f"Connected to: {p}")
@@ -56,26 +55,41 @@ try:
 except Exception as e:
      print(f"Error: {e}")
 
+arduino_serial.reset_input_buffer()
+arduino_serial.reset_output_buffer()
+
 buffer = bytearray()
 
+SET_MOTOR_SPEED = 0x04
+
+command = struct.pack("<hf", 4, 4.7321)
+print(len(command))
+command_encoded = cobs.encode(command) 
+print(len(command_encoded))
+
+# Wait for Arduino to wake up
+time.sleep(3)
+
 while True:
+    num_of_outgoing_bytes = arduino_serial.write(command_encoded + b'\x00')
+    print( "python wrote {0} bytes. command_encoded: {1}".format(num_of_outgoing_bytes, command_encoded))
+
     ## COBS ## 
-    incoming_byte = arduino_serial.read(1)
-    if incoming_byte == zeroByte:
-        # read until the COBS packet ending delimiter is found
-        str = arduino_serial.read_until( zeroByte ) 
-        n = len(str)
+    incoming_bytes = arduino_serial.read_until( zeroByte )
+    print(incoming_bytes)
 
-        if n > 0:
-            # take everything except the trailing zero byte, b'\x00'
-            decodeStr = str[0:(n-1)]
+    # take everything except the trailing zero byte, b'\x00'
+    n_incoming_bytes = len(incoming_bytes)
+    data_raw = incoming_bytes[0:(n_incoming_bytes-1)]
 
-            # recover binary data encoded on Arduino
-            dataDecoded = cobs.decode( decodeStr ) 
-            n_binary = len(dataDecoded)
+    # recover binary data encoded on Arduino
+    data_decoded = cobs.decode( data_raw ) 
+    n_data_decoded = len(data_decoded)
 
-            if (n_binary == 4):
-                # floats in python from the Arduino
-                num = struct.unpack('f',dataDecoded)
-                print(num)
+    print(data_decoded)
 
+    if (n_data_decoded == 4):
+        # floats in python from the Arduino
+        num = struct.unpack('f',data_decoded)
+        print(num)
+    time.sleep(1)

@@ -3,6 +3,7 @@
 .DS_Store
 **/.DS_Store
 ./py/share
+**venv
 
 git rm --cached .DS_Store
 

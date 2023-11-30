@@ -1,6 +1,8 @@
 #include "PressureSensor.h"
 #include <Arduino.h>
 
+int a = 2;
+
 // Constructor for the PressureSensor class
 PressureSensor::PressureSensor(int sensorPin)
 : _sensorPin(sensorPin), 
@@ -13,13 +15,15 @@ PressureSensor::PressureSensor(int sensorPin)
 }
 
 float PressureSensor::readPressure() {
-  float sensorValue = analogRead(_sensorPin);
-  float pressure = mapfloat(sensorValue, _minRaw, _maxRaw, _minScaled, _maxScaled);
-  pressure = max(pressure, 0.0f); // Clamp negative pressure to zero
-  pressure_filtered = _beta * _pressurePrev + (1 - _beta) * pressure; // Low-pass filter
-  _pressurePrev = pressure_filtered;
-  
-  return pressure_filtered;
+  // float sensorValue = analogRead(_sensorPin);
+  // float pressure = mapfloat(sensorValue, _minRaw, _maxRaw, _minScaled, _maxScaled);
+  // pressure = max(pressure, 0.0f); // Clamp negative pressure to zero
+  // pressure_filtered = _beta * _pressurePrev + (1 - _beta) * pressure; // Low-pass filter
+  // _pressurePrev = pressure_filtered;
+  _pressurePrev = mapfloat(analogRead(_sensorPin), _minRaw, _maxRaw, _minScaled, _maxScaled);
+  _pressurePrev = max(_pressurePrev, 0.0f); // Clamp negative pressure to zero
+
+  return _pressurePrev;
 }
 
 float PressureSensor::mapfloat(float x, float in_min, float in_max, float out_min, float out_max) {

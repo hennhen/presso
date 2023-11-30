@@ -5,17 +5,18 @@ from typing import BinaryIO
 
 import serial
 import serial.tools.list_ports
+from cobs import cobs
 
 import sys
-print("Python interpreter:", sys.executable)
-
 
 import robust_serial as rs
 from robust_serial.utils import open_serial_port
 
 ports = list(serial.tools.list_ports.comports())
 arduino_port = None
-# s = None
+
+zeroByte = b'\x00' # COBS 1-byte delimiter is hex zero as a (binary) bytes character
+START_BYTE = b'\x02'
 
 class Order(Enum):
     """
@@ -36,14 +37,14 @@ class Order(Enum):
 
 try:
     for p in ports:
-        print(p)
+        # print(p)
 
         if "Arduino" in p.description:
             arduino_port = p.device
             break
     
     if arduino_port:
-        arduino_serial = rs.utils.open_serial_port(baudrate=9600, timeout=None)
+        arduino_serial = serial.Serial(port=arduino_port, baudrate=9600)
         if not arduino_serial.is_open:
                 raise Exception("Failed to open serial connection to Arduino")
         print(f"Connected to: {p}")
@@ -55,8 +56,26 @@ try:
 except Exception as e:
      print(f"Error: {e}")
 
+buffer = bytearray()
 
-while(True):
-    rs.write_order(arduino_serial, Order.MOTOR)
-    rs.write_i8(arduino_serial, 9)
-    time.sleep(100)
+while True:
+    ## COBS ## 
+    incoming_byte = arduino_serial.read(1)
+    if incoming_byte == zeroByte:
+        # read until the COBS packet ending delimiter is found
+        str = arduino_serial.read_until( zeroByte ) 
+        n = len(str)
+
+        if n > 0:
+            # take everything except the trailing zero byte, b'\x00'
+            decodeStr = str[0:(n-1)]
+
+            # recover binary data encoded on Arduino
+            dataDecoded = cobs.decode( decodeStr ) 
+            n_binary = len(dataDecoded)
+
+            if (n_binary == 4):
+                # floats in python from the Arduino
+                num = struct.unpack('f',dataDecoded)
+                print(num)
+

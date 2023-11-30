@@ -9,23 +9,47 @@
 
 #define PRESSURE_SETPOINT 4.0
 #define kP 500
-#define kI 5
-#define kD 1
+#define kI 3
+#define kD 0
 
-PacketSerial serial;
+#define START_BYTE 0x02
+
+PacketSerial pSerial;
 
 PressureSensor pSensor(pressurePin);
 CytronController motor(pwmPin, dirPin); 
 PIDController pidController(motor, pSensor);
 
+float pressure;
+uint8_t outBuffer[4]; // floats are 4-bytes each in Ardiuno
 
 void setup() {
-  Serial.begin(9600);  // Start the serial communication
   pidController.setParameters(PRESSURE_SETPOINT, kP, kI, kD);
+
+  pSerial.begin(9600);  // Start the serial communication
+  // Serial.begin(9600);
+  // pSerial.setPacketHandler(&onPacketReceived);
+
 }
 
 void loop() {
+  pressure = pSensor.readPressure();
+  pidController.update();
 
-  Serial.println(pidController.update());  // Update the PID controller
-  delay(20);               // Adjust the delay as needed
+  memcpy(outBuffer, &pressure, sizeof(pressure));
+  pSerial.send(outBuffer, sizeof(outBuffer));
+  delay(20);
+}
+
+void onPacketReceived(const uint8_t* buffer, size_t size)
+{
+  // Make a temporary buffer.
+  uint8_t tempBuffer[size];
+
+  // Send the reversed buffer back to the sender. The send() method will encode
+  // the whole buffer as as single packet, set packet markers, etc.
+  // The `tempBuffer` is a pointer to the `tempBuffer` array and `size` is the
+  // number of bytes to send in the `tempBuffer`.
+
+  // myPacketSerial.send(tempBuffer, size);
 }

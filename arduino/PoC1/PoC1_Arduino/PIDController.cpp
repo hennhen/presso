@@ -16,6 +16,12 @@ float PIDController::update() {
     float controlVariable = _kp * error + _ki * _eIntegral + _kd * _eDerivative;
     _ePrev = error;
 
+    if (controlVariable > 255) {
+        controlVariable = 255;
+    } else if (controlVariable < 0) {
+        controlVariable = 0;
+    }
+
     _motor.setSpeed(controlVariable);
     return(controlVariable);
 }

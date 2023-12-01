@@ -3,6 +3,10 @@ from enum import Enum
 import struct
 from typing import BinaryIO
 
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import datetime as dt
+
 import serial
 import serial.tools.list_ports
 from cobs import cobs
@@ -91,69 +95,110 @@ def receive_command(serial_conn):
     
     return None, None
 
-# Wait for Arduino to wake up
-time.sleep(2)
+## PLOTTING STUFF ##
+# Global lists to store time and pressure data
+pressure_data = []
 
-arduino_serial.reset_input_buffer()
-arduino_serial.reset_output_buffer()
+def init_plot(p, i, d, setpoint):
+    global line, ax, fig, background, pressure_data
+    pressure_data.clear()  # Clear the data list
+    plt.ion()
+    fig, ax = plt.subplots()
+    line, = ax.plot([], [], lw=2)  # Initialize an empty line
+    ax.axhline(y=setpoint, color='r', linestyle='--')  # Add a horizontal line at the setpoint
+    ax.set_title(f"Pressure for Setpoint: {setpoint}, P: {p}, I:{i}, D:{d}")
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Pressure")
+    ax.set_ylim([0, 10])  # Set y-axis limits
+    fig.canvas.draw()  # Draw the figure canvas
+    background = fig.canvas.copy_from_bbox(ax.bbox)  # Save the state of the background
+    
+def update_plot(pressure_data):
+    if pressure_data:
+        line.set_data(range(len(pressure_data)), pressure_data)  # Update the line data
+        ax.relim()
+        ax.autoscale_view(True, True, True)
+        fig.canvas.restore_region(background)  # Restore the background
+        ax.draw_artist(line)  # Draw the line
+        fig.canvas.blit(ax.bbox)  # Blit the axes bounding box
+        fig.canvas.flush_events()
 
-# Example usage
-pid_packet = create_pid_packet(500, 3, 0, 4)
-motor_up_packet = create_motor_speed_packet(-100)
-motor_down_packet = create_motor_speed_packet(100)
-stop_packet = create_stop_packet()
+## MAIN LOOP ##
+def main():
+    global pressure_data
 
-try:
-    while True:
-        # Get user input
-        text = input("Enter command (up/down/pid/stop/exit): ").strip().lower()
+    # Wait for Arduino to wake up
+    time.sleep(2)
 
-        # Handle the user input
-        if text == 'up':
-            arduino_serial.write(motor_up_packet)
-            time.sleep(1)
-            arduino_serial.write(stop_packet)
+    arduino_serial.reset_input_buffer()
+    arduino_serial.reset_output_buffer()
 
-        elif text == 'down':
-            arduino_serial.write(motor_down_packet)
-            time.sleep(1)
-            arduino_serial.write(stop_packet)
+    # Create packets
+    pid_packet = create_pid_packet(500, 3, 0, 4)
+    motor_up_packet = create_motor_speed_packet(-100)
+    motor_down_packet = create_motor_speed_packet(100)
+    stop_packet = create_stop_packet()
 
-        elif text == 'pid':
-            p = float(input("Enter P value: "))
-            i = float(input("Enter I value: "))
-            d = float(input("Enter D value: "))
-            setpoint = float(input("Enter setpoint value: "))
-            packet = create_pid_packet(p, i, d, setpoint)
-            arduino_serial.write(packet)
+    try:
+        while True:
+            # Get user input
+            text = input("Enter command (up/down/pid/stop/exit): ").strip().lower()
 
-            # Read Pressure
-            while True:
-                command, value = receive_command(arduino_serial)
-                print("Recieved Command: {0}, Value: {1}".format(command, value))
+            # Handle the user input
+            if text == 'up':
+                arduino_serial.write(motor_up_packet)
+                time.sleep(1)
+                arduino_serial.write(stop_packet)
 
-                if command is not None:
-                    if command == Command.EXTRACTION_STOPPED.value:
-                        print("Extraction Stopped.")
-                        break
-                    elif command == Command.PRESSURE_READING.value:
-                        print(f"Pressure Reading: {value}")
+            elif text == 'down':
+                arduino_serial.write(motor_down_packet)
+                time.sleep(1)
+                arduino_serial.write(stop_packet)
 
-        elif text == 'stop':
-            arduino_serial.write(stop_packet)
+            elif text == 'pid':
+                p = float(input("Enter P value: "))
+                i = float(input("Enter I value: "))
+                d = float(input("Enter D value: "))
+                setpoint = float(input("Enter setpoint value: "))
+                init_plot(p, i, d, setpoint)
 
-        elif text == 'exit':
-            break
+                packet = create_pid_packet(p, i, d, setpoint)
+                arduino_serial.write(packet)
 
-        else:
-            print("Invalid command.")   
-except KeyboardInterrupt:
-    print("Keyboard Interrupted")
-    arduino_serial.write(stop_packet)
-    sys.exit(0)
-finally:
-    print("Finally")
-    arduino_serial.write(stop_packet)
+                # Read Pressure
+                while True:
+                    command, value = receive_command(arduino_serial)
+                    print("Recieved Command: {0}, Value: {1}".format(command, value))
+
+                    if command is not None:
+                        if command == Command.EXTRACTION_STOPPED.value:
+                            print("Extraction Stopped.")
+                            break
+                        elif command == Command.PRESSURE_READING.value:
+                            print(f"Pressure Reading: {value}")
+                            pressure_data.append(value)  # Append only the pressure value
+                            update_plot(pressure_data)  # Update the plot
+
+            elif text == 'stop':
+                arduino_serial.write(stop_packet)
+
+            elif text == 'exit':
+                break
+
+            else:
+                print("Invalid command.")   
+    except KeyboardInterrupt:
+        print("Keyboard Interrupted")
+        arduino_serial.write(stop_packet)
+        sys.exit(0)
+    finally:
+        print("Finally")
+        arduino_serial.write(stop_packet)
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
     sys.exit(0)
 
 try:

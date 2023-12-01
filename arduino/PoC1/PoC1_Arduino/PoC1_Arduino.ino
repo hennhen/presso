@@ -73,8 +73,8 @@ void loop() {
       sendPressureReading();
     }
   }
-
-  delay(20);
+  // debug.println(pressure);
+  delay(30);
 }
 
 void onPacketReceived(const uint8_t* buffer, size_t size) {

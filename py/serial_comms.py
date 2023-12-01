@@ -89,27 +89,37 @@ def receive_command(serial_conn):
 pressure_data = []
 weight_data = []
 
-# PyQtGraph plotting setup
-app = QApplication([])
+def start_plotting(p, i, d, setpoint, targetWeight, packet):
+    global app, win, pressure_plot, weight_plot, pressure_curve, weight_curve, timer
 
-# Create the main window with a grid layout
-win = pg.GraphicsLayoutWidget(show=True)
-win.setWindowTitle('Real-time Pressure and Weight Plots')
+    # PyQtGraph plotting setup
+    app = QApplication([])
 
-# Global lists to store data
-pressure_data = []
-weight_data = []
+    # Create the main window with a grid layout
+    win = pg.GraphicsLayoutWidget(show=True)
+    win.setWindowTitle('Real-time Pressure and Weight Plots')
 
-# Add the first plot for pressure
-pressure_plot = win.addPlot(title="Pressure Plot")
-pressure_plot.setYRange(0, 12)  # Set y range for pressure plot
-pressure_curve = pressure_plot.plot(pen='y')
+    # Add the first plot for pressure
+    pressure_plot = win.addPlot(title="Pressure Plot")
+    pressure_plot.setYRange(0, 12)  # Set y range for pressure plot
+    pressure_curve = pressure_plot.plot(pen='y')
+    pressure_plot.addLine(y=setpoint, pen='g')  # Set horizontal line for pressure setpoint
 
-# Next row for weight plot
-win.nextRow()  # Moves to the next row in the grid layout
-weight_plot = win.addPlot(title="Weight Plot")
-weight_plot.setYRange(0, 15)  # Set y range for weight plot
-weight_curve = weight_plot.plot(pen='r')
+    # Next row for weight plot
+    win.nextRow()
+    weight_plot = win.addPlot(title="Weight Plot")
+    weight_plot.setYRange(0, 15)  # Set y range for weight plot
+    weight_curve = weight_plot.plot(pen='r')
+    weight_plot.addLine(y=targetWeight, pen='g')  # Set horizontal line for weight setpoint
+
+    # Configure the timer to read data
+    timer = QTimer()
+    timer.timeout.connect(read_serial_data)
+    timer.start(1)  # Adjust as necessary for your data rate
+
+    # Start the PyQtGraph application
+    app.exec_()
+    
 
 def read_serial_data():
     global pressure_data, weight_data
@@ -182,57 +192,21 @@ def main():
                 print(f"Error: {e}")
 
             # Wait for Arduino to wake up
-            time.sleep(2)
+            # time.sleep(2)
 
             arduino_serial.reset_input_buffer()
             arduino_serial.reset_output_buffer()
-            # Get user input
-            text = input("Enter command (up/down/pid/stop/exit): ").strip().lower()
+            
+            p = float(input("Enter P value: "))
+            i = float(input("Enter I value: "))
+            d = float(input("Enter D value: "))
+            setpoint = float(input("Enter setpoint value: "))
+            targetWeight = float(input("Enter target weight value: "))
 
-            # Handle the user input
-            if text == 'up':
-                arduino_serial.write(motor_up_packet)
-                time.sleep(1)
-                arduino_serial.write(stop_packet)
-
-            elif text == 'down':
-                arduino_serial.write(motor_down_packet)
-                time.sleep(1)
-                arduino_serial.write(stop_packet)
-
-            elif text == 'pid':
-                p = float(input("Enter P value: "))
-                i = float(input("Enter I value: "))
-                d = float(input("Enter D value: "))
-                setpoint = float(input("Enter setpoint value: "))
-                targetWeight = float(input("Enter target weight value: "))
-                # init_plot(p, i, d, setpoint, targetWeight)
-
-                packet = create_pid_packet(p, i, d, setpoint, targetWeight)
-                arduino_serial.write(packet)
-
-                # Start graphing
-                # Set horizontal lines for setpoint and target weight
-                pressure_plot.addLine(y=setpoint, pen='g')
-                weight_plot.addLine(y=targetWeight, pen='g')
-                
-                # Configure the timer to read data
-                timer = QTimer()
-                timer.timeout.connect(read_serial_data)
-                timer.start(1)  # Adjust as necessary for your data rate
-
-                # Start the PyQtGraph application
-                sys.exit(app.exec_())  
-
-            elif text == 'stop':
-                arduino_serial.write(stop_packet)
-
-            elif text == 'exit':
-                break
-
-            else:
-                print("Invalid command.")
-
+            packet = create_pid_packet(p, i, d, setpoint, targetWeight)
+            arduino_serial.write(packet)
+            start_plotting(p, i, d, setpoint, targetWeight, packet)
+            
             arduino_serial.close()
     except KeyboardInterrupt:
         print("Keyboard Interrupted")

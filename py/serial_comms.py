@@ -165,28 +165,28 @@ def main():
         while True:
             # Connect to Arduino Serial
             try:
-                # arduino_serial = serial.Serial(port="/dev/cu.usbmodem144101", baudrate=115200, timeout=None)
-                # if not arduino_serial.is_open:
-                #     raise Exception("Failed to open serial connection to Arduino")
-                # print(f"Connected to: {arduino_serial.port}")
+                arduino_serial = serial.Serial(port="/dev/cu.usbserial-110", baudrate=115200, timeout=None)
+                if not arduino_serial.is_open:
+                    raise Exception("Failed to open serial connection to Arduino")
+                print(f"Connected to: {arduino_serial.port}")
 
                 ## AUTO DETECT ONE ARDUINO ##
-                for p in ports:
-                    # print(p)
+                # for p in ports:
+                #     print(p)
 
-                    if "Arduino" in p.description:
-                        arduino_port = p.device
-                        break
+                #     if "Arduino" in p.description:
+                #         arduino_port = p.device
+                #         break
                 
-                if arduino_port:
-                    arduino_serial = serial.Serial(port=arduino_port, baudrate=115200, timeout=None)
-                    if not arduino_serial.is_open:
-                            raise Exception("Failed to open serial connection to Arduino")
-                    print(f"Connected to: {p}")
-                else:
-                    # No Arduino found before loop ends
-                    print(ports)
-                    raise Exception("No Arduino Found. Please check connection")
+                # if arduino_port:
+                #     arduino_serial = serial.Serial(port=arduino_port, baudrate=115200, timeout=None)
+                #     if not arduino_serial.is_open:
+                #             raise Exception("Failed to open serial connection to Arduino")
+                #     print(f"Connected to: {p}")
+                # else:
+                #     # No Arduino found before loop ends
+                #     print(ports)
+                #     raise Exception("No Arduino Found. Please check connection")
 
             except Exception as e:
                 print(f"Error: {e}")

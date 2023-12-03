@@ -8,7 +8,7 @@
 #define DEBUG  // Comment out this line if you don't want debug prints
 
 #ifdef DEBUG
-  #define DEBUG_PRINT(x)  debug.println(x)
+  #define DEBUG_PRINT(x)  Serial1.println(x)
 #else
   #define DEBUG_PRINT(x)
 #endif
@@ -16,8 +16,8 @@
 #define pressurePin A0  // Define the pin for the pressure sensor
 #define pwmPin 6        // PWM Pin for Motor
 #define dirPin 7        // Direction Pin for Motor
-#define LOADCELL_DOUT_PIN 18
-#define LOADCELL_SCK_PIN 19
+#define LOADCELL_DOUT_PIN 30
+#define LOADCELL_SCK_PIN 31
 
 #define LOADCELL_CALIBRATION_FACTOR 1036.1112060547
 
@@ -40,7 +40,6 @@ enum Commands {
   PRESSURE_READING = 9
 };
 
-SoftwareSerial debug(11, 10);  // RX, TX
 PacketSerial pSerial;
 
 PressureSensor pSensor(pressurePin);
@@ -65,9 +64,10 @@ void setup() {
   motor.stop();
 
   pSerial.begin(115200);
+
   
   #ifdef DEBUG
-    debug.begin(4800);
+    Serial1.begin(115200);
     DEBUG_PRINT("debug print test...");
   #endif
 
@@ -78,6 +78,7 @@ void loop() {
 
   pSerial.update();
   pressure = pSensor.readPressure();
+  DEBUG_PRINT("pressure: " + String(pressure));
 
   // loopStartTime = millis();
   if (includeWeight) {

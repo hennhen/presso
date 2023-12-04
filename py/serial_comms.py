@@ -33,6 +33,7 @@ class Command(Enum):
     SET_PRESSURE = 3
     STOP = 4
 
+    TARGET_PRESSURE = 6
     WEIGHT_READING = 7
     EXTRACTION_STOPPED = 8
     PRESSURE_READING = 9
@@ -81,6 +82,9 @@ def receive_command(serial_conn):
         elif command == Command.WEIGHT_READING.value and len(data_decoded) == 6:  # New condition for weight command
             weight_value = struct.unpack('<f', data_decoded[2:])[0]
             return command, weight_value
+        elif command == Command.TARGET_PRESSURE.value and len(data_decoded) == 6:
+            target_pressure_value = struct.unpack('<f', data_decoded[2:])[0]
+            return command, target_pressure_value
     
     return None, None
 
@@ -88,9 +92,10 @@ def receive_command(serial_conn):
 # Global lists to store time and pressure data
 pressure_data = []
 weight_data = []
+target_pressure = []
 
 def start_plotting(p, i, d, setpoint, targetWeight, packet):
-    global app, win, pressure_plot, weight_plot, pressure_curve, weight_curve, timer
+    global app, win, pressure_plot, weight_plot, pressure_curve, weight_curve, target_pressure, target_pressure_curve, timer
 
     # PyQtGraph plotting setup
     app = QApplication([])
@@ -99,30 +104,42 @@ def start_plotting(p, i, d, setpoint, targetWeight, packet):
     win = pg.GraphicsLayoutWidget(show=True)
     win.setWindowTitle('Real-time Pressure and Weight Plots')
 
-    # Add the first plot for pressure
-    pressure_plot = win.addPlot(title="Pressure Plot")
-    pressure_plot.setYRange(0, 12)  # Set y range for pressure plot
-    pressure_curve = pressure_plot.plot(pen='y')
-    pressure_plot.addLine(y=setpoint, pen='g')  # Set horizontal line for pressure setpoint
+    # Resize the window to a bigger size
+    win.resize(800, 600)
+    label = win.addLabel(
+    f'<div style="text-align: center; vertical-align: middle; line-height: normal;">'
+    f'<span style="font-size: 18pt; text-align: center;">kP: 700, kI: 5.5, kD: 0, Sample Time: 1 ms</span><br>'
+    f'<span style="font-size: 18pt; text-align: center;">Duration: 5s</span><br>'
+    f'</div>', 
+    row=0, col=0, colspan=1
+)
 
+    
+    # Add the plot for pressure and target pressure
+    pressure_plot = win.addPlot(title="Pressure Plot", row=1, col=0, colspan=1)
+    pressure_plot.setYRange(0, 12)  # Set y range for pressure plot
+    pressure_plot.setLabel('left', 'Pressure', units='bars', size=50)
+    pressure_curve = pressure_plot.plot(pen='y')
+    target_pressure_curve = pressure_plot.plot(pen='g')  # Add target pressure curve
+    
     # Next row for weight plot
-    win.nextRow()
-    weight_plot = win.addPlot(title="Weight Plot")
-    weight_plot.setYRange(0, 15)  # Set y range for weight plot
-    weight_curve = weight_plot.plot(pen='r')
-    weight_plot.addLine(y=targetWeight, pen='g')  # Set horizontal line for weight setpoint
+    # win.nextRow()
+    # weight_plot = win.addPlot(title="Weight Plot")
+    # weight_plot.setYRange(0, 15)  # Set y range for weight plot
+    # weight_curve = weight_plot.plot(pen='r')
+    # weight_plot.addLine(y=targetWeight, pen='g')  # Set horizontal line for weight setpoint
 
     # Configure the timer to read data
     timer = QTimer()
     timer.timeout.connect(read_serial_data)
-    timer.start(1)  # Adjust as necessary for your data rate
+    timer.start(0)  # Adjust as necessary for your data rate
 
     # Start the PyQtGraph application
     app.exec_()
     
 
 def read_serial_data():
-    global pressure_data, weight_data
+    global pressure_data, weight_data, target_pressure, pressure_plot, weight_plot, pressure_curve, weight_curve, target_pressure_curve, timer, arduino_serial
     command, value = receive_command(arduino_serial)
     print("Recieved Command: {0}, Value: {1}".format(command, value))
 
@@ -133,6 +150,10 @@ def read_serial_data():
             print(f"Pressure Reading: {value}")
             pressure_data.append(value)  # Append only the pressure value
             update_pressure_plot()  # Update the plot
+        elif command == Command.TARGET_PRESSURE.value:
+            print(f"Target Pressure: {value}")
+            target_pressure.append(value)  # Append only the pressure value
+            update_target_pressure_plot()  # Update the plot
         elif command == Command.WEIGHT_READING.value:
             print(f"Weight Reading: {value}")
             weight_data.append(value)
@@ -142,10 +163,13 @@ def update_pressure_plot():
     global pressure_data
     pressure_curve.setData(pressure_data)
 
-
 def update_weight_plot():
     global weight_data
     weight_curve.setData(weight_data)
+
+def update_target_pressure_plot():
+    global target_pressure
+    target_pressure_curve.setData(target_pressure)
 
 def close_event():
     win.close()

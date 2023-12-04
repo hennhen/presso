@@ -1,18 +1,23 @@
 #include "CytronController.h"
 #include <Arduino.h>
 
-CytronController::CytronController(int pwmPin, int dirPin)
+CytronController::CytronController(uint8_t pwmPin, uint8_t dirPin)
 : _pwmPin(pwmPin), _dirPin(dirPin) {
   pinMode(_pwmPin, OUTPUT);
   pinMode(_dirPin, OUTPUT);
 }
 
-void CytronController::setSpeed(float value) {
-  int dir = HIGH;
-  int pwmValue = (int)fabs(value);
+bool dir = HIGH;
+short pwmValue = 0;
+
+void CytronController::setSpeed(short value) {
+
+  pwmValue = value;
 
   if (value < 0) {
     dir = LOW;
+  } else {
+    dir = HIGH;
   }
 
   if (pwmValue > 255) {

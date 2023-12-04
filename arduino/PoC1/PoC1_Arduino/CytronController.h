@@ -5,13 +5,13 @@
 
 class CytronController {
   public:
-    CytronController(int pwmPin, int dirPin); // Constructor
-    void setSpeed(float value); // Set the speed and direction of the motor
+    CytronController(uint8_t pwmPin, uint8_t dirPin); // Constructor
+    void setSpeed(short value); // Set the speed and direction of the motor
     void stop(); // Stop the motor
 
   private:
-    int _pwmPin;
-    int _dirPin;
+    uint8_t _pwmPin;
+    uint8_t _dirPin;
 };
 
 #endif

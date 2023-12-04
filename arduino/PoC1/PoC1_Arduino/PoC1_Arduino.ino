@@ -35,6 +35,7 @@ enum Commands {
   SET_PRESSURE = 3,
   STOP = 4,
 
+  TARGET_PRESSURE = 6,
   WEIGHT_READING = 7,
   EXTRACTION_STOPPED = 8,
   PRESSURE_READING = 9
@@ -49,8 +50,8 @@ HX711_Scale scale(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN, LOADCELL_CALIBRATION_FACT
 
 // PID Extraction Loop Parameters
 bool isPIDRunning = false;
-unsigned long pidStartTime = 0;
-const unsigned long pidRunDuration = 3000; // PID Loop timeout
+unsigned long extractionStartTime = 0;
+const unsigned long pidRunDuration = 6000; // PID Loop timeout
 
 //
 float pressure;
@@ -62,55 +63,68 @@ uint8_t outBuffer[sizeof(short) + sizeof(float)];
 
 void setup() {
   motor.stop();
-
   pSerial.begin(115200);
+  pSerial.setPacketHandler(&onPacketReceived);
 
-  
   #ifdef DEBUG
     Serial1.begin(115200);
     DEBUG_PRINT("debug print test...");
   #endif
-
-  pSerial.setPacketHandler(&onPacketReceived);
 }
 
 void loop() {
-
   pSerial.update();
   pressure = pSensor.readPressure();
-  DEBUG_PRINT("pressure: " + String(pressure));
 
-  // loopStartTime = millis();
   if (includeWeight) {
     scale.updateWeight();
   }
-  // duration = millis() - loopStartTime;
-
-  // DEBUG_PRINT("update weight time: " + String(duration) + " ms");
 
   if (isPIDRunning) {
     // Check if 5 seconds have passed or target weight reached
     // If target weight is 0, then it is not used as a termination condition
-
-    if ((targetWeight != 0 && scale.weight >= targetWeight) || (targetWeight == 0 && millis() - pidStartTime > pidRunDuration)) {
+    if ((targetWeight != 0 && scale.weight >= targetWeight) || (targetWeight == 0 && millis() - extractionStartTime > pidRunDuration)) {
+      /* STOP CONDITION */ 
       isPIDRunning = false;
       motor.stop();  // Stop the motor after 5 seconds or target weight reached
       sendExtractionStopped();
       DEBUG_PRINT("Extraction duration reached or target weight reached");
+
     } else {
+      /* PID LOOP */
+      // onlyStaticTarget();
+      float tTarget = sineWaveTarget();
+      pidController.updateDynamic(tTarget);
 
-      pidController.update();
-
-      sendPressureReading();
-
+       sendPressureReading();
+       // Only send weight reading if includeWeight is true
       if (includeWeight) {
-        sendWeightReading();  // Only send weight reading if includeWeight is true
+        sendWeightReading(); 
       }
     }
   }
   if(!includeWeight) {
-    delay(30);
+    delay(1);
   }
+}
+
+/*SINE WAVE TARGET STUFF*/
+float sine_amplitude = 1;
+float sine_frequency = 0.4;
+float sine_offset = 8;
+
+// Sine wave profile with offset
+float sineWaveTarget() {
+  // Frequency is in Hertz (Hz) - cycles per second
+  float tttarget = sine_amplitude * sin(2.0 * PI * sine_frequency * (millis() / 1000.0)) + sine_offset;
+  sendTargetPressure(tttarget);
+  return tttarget;
+}
+
+void onlyStaticTarget() {
+  // Keep updating the PID controller
+  pidController.updateStatic();
+  // pidController.updateDynamic(PRESSURE_SETPOINT);
 }
 
 void onPacketReceived(const uint8_t* buffer, size_t size) {
@@ -198,7 +212,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size) {
           // Start PID control
           DEBUG_PRINT("extracting & sending pressure...");
           isPIDRunning = true;
-          pidStartTime = millis();  // Record the start time
+          extractionStartTime = millis();  // Record the start time
           break;
 
         } else {
@@ -237,4 +251,17 @@ void sendWeightReading() {
   memcpy(buffer, &command, sizeof(command));
   memcpy(buffer + sizeof(command), &scale.weight, sizeof(weight));
   pSerial.send(buffer, sizeof(buffer));
+}
+
+void sendTargetPressure(float tpressure) {
+  short command = TARGET_PRESSURE;
+  uint8_t buffer[sizeof(short) + sizeof(float)];
+  memcpy(buffer, &command, sizeof(command));
+  memcpy(buffer + sizeof(command), &tpressure, sizeof(tpressure));
+  pSerial.send(buffer, sizeof(buffer));
+}
+
+// Linear slope profile
+float linearSlopeProfile(unsigned long currentTime, float slope, float offset) {
+  return slope * currentTime / 1000.0 + offset;
 }

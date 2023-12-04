@@ -8,7 +8,8 @@
 class PIDController {
 public:
     PIDController(CytronController& motor, PressureSensor& sensor);
-    float update(); // Update PID calculations and control the motor
+    float updateStatic(); // Update PID calculations and control the motor
+    float updateDynamic(float target); // Update PID calculations and control the motor
     void setParameters(float setpoint, float kp, float ki, float kd); // Set PID parameters
 
 private:

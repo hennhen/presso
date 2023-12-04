@@ -4,7 +4,7 @@ PIDController::PIDController(CytronController& motor, PressureSensor& sensor)
 : _motor(motor), _sensor(sensor), _setpoint(0), _kp(0), _ki(0), _kd(0), _eIntegral(0), _ePrev(0), _eDerivative(0), _prevT(millis()) {
 }
 
-float PIDController::update() {
+float PIDController::updateStatic() {
     unsigned long currT = millis();
     float deltaTime = (currT - _prevT) / 1000.0; // Convert to seconds
     _prevT = currT;
@@ -13,7 +13,29 @@ float PIDController::update() {
     float error = _setpoint - pressure;
     _eDerivative = (error - _ePrev) / deltaTime;
     _eIntegral += error * deltaTime;
-    float controlVariable = _kp * error + _ki * _eIntegral + _kd * _eDerivative;
+    short controlVariable = (short) fabs(_kp * error + _ki * _eIntegral + _kd * _eDerivative);
+    _ePrev = error;
+
+    if (controlVariable > 255) {
+        controlVariable = 255;
+    } else if (controlVariable < 0) {
+        controlVariable = 0;
+    }
+
+    _motor.setSpeed(controlVariable);
+    return(controlVariable);
+}
+
+float PIDController::updateDynamic(float target) {
+    unsigned long currT = millis();
+    float deltaTime = (currT - _prevT) / 1000.0; // Convert to seconds
+    _prevT = currT;
+
+    float pressure = _sensor.readPressure();
+    float error = target - pressure; // Use target instead of _setpoint
+    _eDerivative = (error - _ePrev) / deltaTime;
+    _eIntegral += error * deltaTime;
+    short controlVariable = (short) fabs(_kp * error + _ki * _eIntegral + _kd * _eDerivative);
     _ePrev = error;
 
     if (controlVariable > 255) {

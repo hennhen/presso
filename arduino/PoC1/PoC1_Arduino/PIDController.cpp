@@ -35,7 +35,7 @@ float PIDController::updateDynamic(float target) {
     float error = target - pressure; // Use target instead of _setpoint
     _eDerivative = (error - _ePrev) / deltaTime;
     _eIntegral += error * deltaTime;
-    short controlVariable = (short) fabs(_kp * error + _ki * _eIntegral + _kd * _eDerivative);
+    short controlVariable = (short) round(_kp * error + _ki * _eIntegral + _kd * _eDerivative);
     _ePrev = error;
 
     if (controlVariable > 255) {

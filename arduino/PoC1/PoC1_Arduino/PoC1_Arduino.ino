@@ -8,9 +8,9 @@
 #define DEBUG  // Comment out this line if you don't want debug prints
 
 #ifdef DEBUG
-  #define DEBUG_PRINT(x)  Serial1.println(x)
+#define DEBUG_PRINT(x) Serial1.println(x)
 #else
-  #define DEBUG_PRINT(x)
+#define DEBUG_PRINT(x)
 #endif
 
 #define pressurePin A0  // Define the pin for the pressure sensor
@@ -51,14 +51,14 @@ HX711_Scale scale(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN, LOADCELL_CALIBRATION_FACT
 // PID Extraction Loop Parameters
 bool isPIDRunning = false;
 unsigned long extractionStartTime = 0;
-const unsigned long pidRunDuration = 6000; // PID Loop timeout
+const unsigned long pidRunDuration = 10000;  // PID Loop timeout
 
 //
 float pressure;
 float weight;
-bool includeWeight = false; 
+bool includeWeight = false;
 
-float targetWeight = 0.0; // Target weight for termination condition
+float targetWeight = 0.0;  // Target weight for termination condition
 uint8_t outBuffer[sizeof(short) + sizeof(float)];
 
 void setup() {
@@ -66,11 +66,30 @@ void setup() {
   pSerial.begin(115200);
   pSerial.setPacketHandler(&onPacketReceived);
 
-  #ifdef DEBUG
-    Serial1.begin(115200);
-    DEBUG_PRINT("debug print test...");
-  #endif
+#ifdef DEBUG
+  Serial1.begin(115200);
+  DEBUG_PRINT("debug print test...");
+#endif
 }
+
+/// RAMPING ///
+// Constants for the ramping profile
+const unsigned long rampDuration = 1000;  // Duration of ramp up/down in milliseconds
+const unsigned long holdDuration = 1500;  // Duration to hold at max pressure
+const float maxPressure = 5.0;            // Maximum pressure to hold
+// Calculate slopes based on maxPressure and rampDuration
+const float rampUpSlope = maxPressure / (rampDuration / 1000.0);  // Slope for ramping up
+const float rampDownSlope = -rampUpSlope;                         // Negative slope for ramping down
+
+enum RampState {
+  RAMP_UP,
+  HOLD,
+  RAMP_DOWN
+};
+
+RampState rampState = RAMP_UP;
+unsigned long rampStartTime;
+float targetPressure = 0.0;
 
 void loop() {
   pSerial.update();
@@ -84,7 +103,7 @@ void loop() {
     // Check if 5 seconds have passed or target weight reached
     // If target weight is 0, then it is not used as a termination condition
     if ((targetWeight != 0 && scale.weight >= targetWeight) || (targetWeight == 0 && millis() - extractionStartTime > pidRunDuration)) {
-      /* STOP CONDITION */ 
+      /* STOP CONDITION */
       isPIDRunning = false;
       motor.stop();  // Stop the motor after 5 seconds or target weight reached
       sendExtractionStopped();
@@ -92,18 +111,56 @@ void loop() {
 
     } else {
       /* PID LOOP */
-      // onlyStaticTarget();
-      float tTarget = sineWaveTarget();
-      pidController.updateDynamic(tTarget);
+      // float tTarget = sineWaveTarget();
+      // pidController.updateDynamic(tTarget);
 
-       sendPressureReading();
-       // Only send weight reading if includeWeight is true
-      if (includeWeight) {
-        sendWeightReading(); 
+      /*RAMPING */
+      unsigned long currentTime = millis();
+      unsigned long elapsedTime = currentTime - rampStartTime;
+
+      switch (rampState) {
+        case RAMP_UP:
+          targetPressure = rampUpSlope * (elapsedTime / 1000.0);
+          if (elapsedTime >= rampDuration) {
+            Serial1.println("Ramp Up Done");
+            rampState = HOLD;
+            rampStartTime = currentTime;  // Reset the start time for holding
+          }
+          break;
+        case HOLD:
+          if (currentTime - rampStartTime <= holdDuration) {
+            targetPressure = maxPressure;
+          } else {
+            rampState = RAMP_DOWN;
+            rampStartTime = currentTime;  // Reset the start time for ramping down
+          }
+          break;
+        case RAMP_DOWN:
+          elapsedTime = currentTime - rampStartTime;  // Recalculate elapsedTime for RAMP_DOWN
+          targetPressure = maxPressure + rampDownSlope * (elapsedTime / 1000.0);
+          if (targetPressure <= 0.0) {
+            targetPressure = 0.0;
+            /* STOP CONDITION */
+            isPIDRunning = false;
+            motor.stop();  // Stop the motor after 5 seconds or target weight reached
+            sendExtractionStopped();
+            DEBUG_PRINT("RAMP DOWN DONE, stopped");
+          }
+          break;
       }
+      // Serial1.println(targetPressure);
+      pidController.updateDynamic(targetPressure);
+      sendTargetPressure(targetPressure);
+      sendPressureReading();
+      // Only send weight reading if includeWeight is true
+      // if (includeWeight) {
+      //   sendWeightReading();
+      // }
     }
+  } else {
+    motor.stop();
   }
-  if(!includeWeight) {
+  if (!includeWeight) {
     delay(1);
   }
 }
@@ -135,10 +192,10 @@ void onPacketReceived(const uint8_t* buffer, size_t size) {
     DEBUG_PRINT("Data: ");
 
     if (size > 0) {
-          // Print the single byte in hexadecimal format
-          DEBUG_PRINT("0x");
-          DEBUG_PRINT(buffer[0]);  // Print the first byte in HEX
-      }
+      // Print the single byte in hexadecimal format
+      DEBUG_PRINT("0x");
+      DEBUG_PRINT(buffer[0]);  // Print the first byte in HEX
+    }
     return;
   }
 
@@ -153,7 +210,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size) {
     case STOP:
       {
         motor.stop();
-        isPIDRunning = false; // Stop PID control
+        isPIDRunning = false;  // Stop PID control
         sendExtractionStopped();
         DEBUG_PRINT("Stopped");
         break;
@@ -189,9 +246,9 @@ void onPacketReceived(const uint8_t* buffer, size_t size) {
           memcpy(&weight, buffer + sizeof(short) + 4 * sizeof(float), sizeof(float));
 
           pidController.setParameters(setpoint, p, i, d);
-          targetWeight = weight; // Set the target weight for termination condition
+          targetWeight = weight;  // Set the target weight for termination condition
 
-          if(targetWeight != 0) {
+          if (targetWeight != 0) {
             includeWeight = true;
           }
 
@@ -208,11 +265,13 @@ void onPacketReceived(const uint8_t* buffer, size_t size) {
             DEBUG_PRINT("Target Weight: ");
             DEBUG_PRINT(weight);
           }
-          
+
           // Start PID control
           DEBUG_PRINT("extracting & sending pressure...");
           isPIDRunning = true;
           extractionStartTime = millis();  // Record the start time
+          rampStartTime = millis();        // Initialize the start time
+
           break;
 
         } else {
@@ -227,22 +286,22 @@ void onPacketReceived(const uint8_t* buffer, size_t size) {
 }
 
 void sendExtractionStopped() {
-    short command = EXTRACTION_STOPPED;
-    uint8_t buffer[sizeof(short)];
-    memcpy(buffer, &command, sizeof(command));
-    pSerial.send(buffer, sizeof(buffer));
-    DEBUG_PRINT("Sending Extraction Stopped. Sent bytes: ");
-    DEBUG_PRINT(sizeof(buffer));
+  short command = EXTRACTION_STOPPED;
+  uint8_t buffer[sizeof(short)];
+  memcpy(buffer, &command, sizeof(command));
+  pSerial.send(buffer, sizeof(buffer));
+  DEBUG_PRINT("Sending Extraction Stopped. Sent bytes: ");
+  DEBUG_PRINT(sizeof(buffer));
 }
 
 void sendPressureReading() {
-    short command = PRESSURE_READING;
-    uint8_t buffer[sizeof(short) + sizeof(float)];
-    memcpy(buffer, &command, sizeof(command));
-    memcpy(buffer + sizeof(command), &pressure, sizeof(pressure));
-    pSerial.send(buffer, sizeof(buffer));
-    // DEBUG_PRINT("Sending Pressure. Sent bytes: ");
-    // DEBUG_PRINT(sizeof(buffer));
+  short command = PRESSURE_READING;
+  uint8_t buffer[sizeof(short) + sizeof(float)];
+  memcpy(buffer, &command, sizeof(command));
+  memcpy(buffer + sizeof(command), &pressure, sizeof(pressure));
+  pSerial.send(buffer, sizeof(buffer));
+  // DEBUG_PRINT("Sending Pressure. Sent bytes: ");
+  // DEBUG_PRINT(sizeof(buffer));
 }
 
 void sendWeightReading() {

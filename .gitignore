@@ -4,6 +4,7 @@
 **/.DS_Store
 ./py/share
 **venv
+*.code-workspace
 
 git rm --cached .DS_Store
 

@@ -69,7 +69,13 @@ def receive_command(serial_conn):
         sys.exit(0)
 
     data_raw = incoming_bytes[:-1]  # Exclude the trailing zero byte
-    data_decoded = cobs.decode(data_raw)
+
+    try:
+        data_decoded = cobs.decode(data_raw)
+    except cobs.DecodeError:
+        print("COBS Decode Error")
+        # ignore this packet
+        return None, None
     
     if len(data_decoded) >= 2:  # At least 2 bytes for command
         command = struct.unpack('<h', data_decoded[:2])[0]
@@ -141,21 +147,22 @@ def start_plotting(p, i, d, setpoint, targetWeight, packet):
 def read_serial_data():
     global pressure_data, weight_data, target_pressure, pressure_plot, weight_plot, pressure_curve, weight_curve, target_pressure_curve, timer, arduino_serial
     command, value = receive_command(arduino_serial)
-    print("Recieved Command: {0}, Value: {1}".format(command, value))
+    # print("Recieved Command: {0}, Value: {1}".format(command, value))
 
     if command is not None:
         if command == Command.EXTRACTION_STOPPED.value:
-            print("Extraction Stopped.")
+            # print("Extraction Stopped.")
+            pass
         elif command == Command.PRESSURE_READING.value:
-            print(f"Pressure Reading: {value}")
+            # print(f"Pressure Reading: {value}")
             pressure_data.append(value)  # Append only the pressure value
             update_pressure_plot()  # Update the plot
         elif command == Command.TARGET_PRESSURE.value:
-            print(f"Target Pressure: {value}")
+            # print(f"Target Pressure: {value}")
             target_pressure.append(value)  # Append only the pressure value
             update_target_pressure_plot()  # Update the plot
         elif command == Command.WEIGHT_READING.value:
-            print(f"Weight Reading: {value}")
+            # print(f"Weight Reading: {value}")
             weight_data.append(value)
             update_weight_plot()
 
@@ -189,7 +196,7 @@ def main():
         while True:
             # Connect to Arduino Serial
             try:
-                arduino_serial = serial.Serial(port="/dev/cu.usbserial-110", baudrate=115200, timeout=None)
+                arduino_serial = serial.Serial(port="/dev/cu.usbserial-14610", baudrate=115200, timeout=None)
                 if not arduino_serial.is_open:
                     raise Exception("Failed to open serial connection to Arduino")
                 print(f"Connected to: {arduino_serial.port}")

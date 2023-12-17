@@ -47,7 +47,8 @@ enum Commands {
 PacketSerial pSerial;
 
 PressureSensor pSensor(pressurePin);
-CytronController motor(pwmPin, dirPin);
+// CytronController motor(pwmPin, dirPin);
+RoboController motor(&Serial2, 115200);
 PIDController pidController(motor, pSensor);
 HX711_Scale scale(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN,
                   LOADCELL_CALIBRATION_FACTOR);

@@ -3,12 +3,13 @@
 
 #include <Arduino.h>
 #include "RoboClaw.h"
+#include "MotorController.h"
 
-class RoboController {
+class RoboController : public MotorController {
   public:
     RoboController(HardwareSerial *roboSerial, uint32_t baudrate); // Constructor
-    void setSpeed(short value); // Set the speed and direction of the motor, -127 to 127
-    void stop(); // Stop the motor
+    void setSpeed(short value) override; // Set the speed and direction of the motor, -127 to 127
+    void stop() override; // Stop the motor
 
   private:
     HardwareSerial *_roboSerial;

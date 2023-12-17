@@ -2,18 +2,18 @@
 #define PIDController_H
 
 #include <Arduino.h>
-#include "CytronController.h"
+#include "MotorController.h" 
 #include "PressureSensor.h"
 
 class PIDController {
 public:
-    PIDController(CytronController& motor, PressureSensor& sensor);
+    PIDController(MotorController& motor, PressureSensor& sensor);
     float updateStatic(); // Update PID calculations and control the motor
     float updateDynamic(float target); // Update PID calculations and control the motor
     void setParameters(float setpoint, float kp, float ki, float kd); // Set PID parameters
 
 private:
-    CytronController& _motor;
+    MotorController& _motor;
     PressureSensor& _sensor;
     float _setpoint;
     float _kp, _ki, _kd;

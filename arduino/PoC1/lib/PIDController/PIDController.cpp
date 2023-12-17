@@ -16,9 +16,10 @@ float PIDController::updateStatic() {
     _eIntegral += error * deltaTime;
     short controlVariable = (short) fabs(_kp * error + _ki * _eIntegral + _kd * _eDerivative);
     _ePrev = error;
+    // Serial1.println(controlVariable);
 
-    if (controlVariable > 255) {
-        controlVariable = 255;
+    if (controlVariable > 126) {
+        controlVariable = 126;
     } else if (controlVariable < 0) {
         controlVariable = 0;
     }
@@ -38,12 +39,15 @@ float PIDController::updateDynamic(float target) {
     _eIntegral += error * deltaTime;
     short controlVariable = (short) round(_kp * error + _ki * _eIntegral + _kd * _eDerivative);
     _ePrev = error;
+    // Serial1.println(controlVariable);
 
-    if (controlVariable > 255) {
-        controlVariable = 255;
+    if (controlVariable > 126) {
+        controlVariable = 126;
     } else if (controlVariable < 0) {
         controlVariable = 0;
     }
+
+    // Serial1.println(controlVariable);
 
     _motor.setSpeed(controlVariable);
     return(controlVariable);

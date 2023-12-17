@@ -56,7 +56,7 @@ HX711_Scale scale(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN,
 // PID Extraction Loop Parameters
 bool isExtracting = false;
 unsigned long extractionStartTime = 0;
-const unsigned long extractionDuration = 5000; // PID Loop timeout
+const unsigned long extractionDuration = 4000; // PID Loop timeout
 
 // Function to send a command with a floating point value
 void sendFloat(short command, float value = 0.0) {
@@ -73,13 +73,12 @@ void sendFloat(short command, float value = 0.0) {
 //
 
 
-// ExtractionProfile extractionProfile = ExtractionProfile(SINE_WAVE,
-// extractionDuration); ExtractionProfile extractionProfile =
-// ExtractionProfile(RAMPING, extractionDuration);
-ExtractionProfile extractionProfile =
-    ExtractionProfile(STATIC, extractionDuration);
+ExtractionProfile extractionProfile = ExtractionProfile(SINE_WAVE, extractionDuration); 
+// ExtractionProfile extractionProfile = ExtractionProfile(RAMPING, extractionDuration);
+// ExtractionProfile extractionProfile = ExtractionProfile(STATIC, extractionDuration);
 
 void setup() {
+  motor.init();
   motor.stop();
   pSerial.begin(115200);
   pSerial.setPacketHandler(&onPacketReceived);
@@ -89,9 +88,9 @@ void setup() {
   DEBUG_PRINT("debug print test...");
 #endif
 
-  // extractionProfile.setSineParameters(1.0, 0.4, 8.0);
+  extractionProfile.setSineParameters(1.0, 0.4, 8.0);
   // extractionProfile.setRampingParameters(9.0, 2000, 2000);
-  extractionProfile.setStaticPressure(4.0);
+  // extractionProfile.setStaticPressure(8.0);
 }
 
 unsigned long lastSendTime = 0;
@@ -131,7 +130,7 @@ void loop() {
         sendFloat(DUTY_CYCLE, currDutyCycle);
         sendFloat(TARGET_PRESSURE, currTarget);
         sendFloat(PRESSURE_READING, currPressure);
-        DEBUG_PRINT(currDutyCycle);
+        // DEBUG_PRINT(currDutyCycle);
         // if (includeWeight) {
         //   sendFloat(WEIGHT_READING, scale.getWeight());
         // }
@@ -147,7 +146,7 @@ void loop() {
     }
   }
 
-  // delay(20);
+  delay(20);
 }
 
 void onPacketReceived(const uint8_t *buffer, size_t size) {

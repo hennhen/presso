@@ -1,7 +1,8 @@
 #include "PIDController.h"
+#include "MotorController.h"
 
-PIDController::PIDController(CytronController& motor, PressureSensor& sensor)
-: _motor(motor), _sensor(sensor), _setpoint(0), _kp(0), _ki(0), _kd(0), _eIntegral(0), _ePrev(0), _eDerivative(0), _prevT(millis()) {
+PIDController::PIDController(MotorController& cytronMotor, PressureSensor& sensor)
+: _motor(cytronMotor), _sensor(sensor), _setpoint(0), _kp(0), _ki(0), _kd(0), _eIntegral(0), _ePrev(0), _eDerivative(0), _prevT(millis()) {
 }
 
 float PIDController::updateStatic() {

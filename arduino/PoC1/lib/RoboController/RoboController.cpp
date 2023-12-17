@@ -3,6 +3,10 @@
 RoboController::RoboController(HardwareSerial *roboSerial, uint32_t baudrate)
 : _roboSerial(roboSerial), _baudrate(baudrate), _roboClaw(roboSerial, 10000) {
     _roboClaw.begin(_baudrate);
+    // Serial1.println("RoboClaw Initialized");
+    _roboClaw.ForwardM1(_address, 50); // Stop the motor
+    delay(100);
+    _roboClaw.ForwardM1(_address, 0); // Stop the motor
 }
 
 void RoboController::setSpeed(short value) {

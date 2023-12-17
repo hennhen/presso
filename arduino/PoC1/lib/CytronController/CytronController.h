@@ -2,12 +2,13 @@
 #define CytronController_H
 
 #include <Arduino.h>
+#include "MotorController.h"
 
-class CytronController {
+class CytronController : public MotorController {
   public:
     CytronController(uint8_t pwmPin, uint8_t dirPin); // Constructor
-    void setSpeed(short value); // Set the speed and direction of the motor
-    void stop(); // Stop the motor
+    void setSpeed(short value) override; // This now correctly overrides the base class method
+    void stop() override; // Stop the motor
 
   private:
     uint8_t _pwmPin;

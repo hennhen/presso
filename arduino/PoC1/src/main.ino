@@ -5,6 +5,7 @@
 #include "PressureSensor.h"
 #include <PacketSerial.h>
 #include <SoftwareSerial.h>
+#include "RoboController.h"
 
 #define DEBUG // Comment out this line if you don't want debug prints
 

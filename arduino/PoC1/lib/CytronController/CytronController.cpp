@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 CytronController::CytronController(uint8_t pwmPin, uint8_t dirPin)
-: _pwmPin(pwmPin), _dirPin(dirPin) {
+    : _pwmPin(pwmPin), _dirPin(dirPin) {
   pinMode(_pwmPin, OUTPUT);
   pinMode(_dirPin, OUTPUT);
 }

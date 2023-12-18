@@ -13,5 +13,6 @@ class Command(Enum):
     WEIGHT_READING = 7
     EXTRACTION_STOPPED = 8
     PRESSURE_READING = 9
+    PROFILE_SELECTION = 10
 
 # Add any related functions or classes here if needed

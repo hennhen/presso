@@ -31,9 +31,12 @@ class ControlPanel(QWidget):
         self.i_input.setText("2")    # Set default value for I
         self.d_input = QLineEdit()
         self.d_input.setText("0")    # Set default value for D
+        self.duration_input = QLineEdit()
+        self.duration_input.setText("3000")    # Set default value for D
         pid_layout.addRow("P:", self.p_input)
         pid_layout.addRow("I:", self.i_input)
         pid_layout.addRow("D:", self.d_input)
+        pid_layout.addRow("Duration (ms):", self.duration_input)
 
         # Button to start plotting
         self.start_button = QPushButton("Start + Plot")
@@ -117,16 +120,38 @@ class ControlPanel(QWidget):
         self.plot_windows.append(PlotWindow(self.arduino_serial, self.p, self.i, self.d))
         self.plot_windows[-1].show()
         arduino_serial.send_command(Command.SET_PID_VALUES, self.p, self.i, self.d, 1, 0)
-        
+
     def on_start_button_click(self):
         # Get P, I, D values from text boxes
         self.p = float(self.p_input.text())
         self.i = float(self.i_input.text())
         self.d = float(self.d_input.text())
 
+        # Get profile type
+        if self.sine_radio.isChecked():
+            profile = {
+                'type': 'sine',
+                'amplitude': float(self.amplitude_input.text()),
+                'frequency': float(self.frequency_input.text()),
+                'offset': float(self.offset_input.text()),
+                'duration': int(self.duration_input.text())
+            }
+        elif self.static_radio.isChecked():
+            profile = {
+                'type': 'static',
+                'setpoint': float(self.static_setpoint_input.text()),
+                'duration': int(self.duration_input.text())
+            }
+            
+        arduino_serial.send_command(Command.PROFILE_SELECTION, profile)
         # Create a new plot with the updated PID values
         self.create_new_plot()
 
+        
+    def mousePressEvent(self, event):
+        # Set focus to the main window, which removes focus from the text boxes
+        self.setFocus()
+        
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Left:
             print("Left arrow key pressed")

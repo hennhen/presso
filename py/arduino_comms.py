@@ -64,6 +64,8 @@ class SerialCommunicator:
             packet = self.create_motor_speed_packet(*args)
         elif command == Command.STOP:
             packet = self.create_stop_packet()
+        elif command == Command.PROFILE_SELECTION:
+            packet = self.create_profile_selection_packet(*args)
         # Add other command cases as needed
 
         if self.serial and self.serial.is_open:
@@ -74,10 +76,26 @@ class SerialCommunicator:
                 print(*args)
             except Exception as e:
                 print(f"Error sending command: {e}")
-        
+    
     def create_pid_packet(self, p, i, d, setpoint, targetWeight=0):
         packet = struct.pack('<hfffff', Command.SET_PID_VALUES.value, p, i, d, setpoint, targetWeight)
         return packet
+
+    def create_profile_selection_packet(self, profile):
+        print(profile)
+        type = profile['type']
+        if type == 'sine':
+            amplitude = profile['amplitude']
+            frequency = profile['frequency']
+            offset = profile['offset']
+            duration = profile['duration']
+            packet = struct.pack('<hhfffh', Command.PROFILE_SELECTION.value, 11, amplitude, frequency, offset, duration)
+            return packet
+        elif type == 'static':
+            setpoint = profile['setpoint']
+            duration = profile['duration']
+            packet = struct.pack('<hhfh', Command.PROFILE_SELECTION.value, 12, setpoint, duration)
+            return packet
 
     def create_motor_speed_packet(self, speed):
         packet = struct.pack('<hf', Command.SET_MOTOR_SPEED.value, speed)

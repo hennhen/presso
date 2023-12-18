@@ -65,12 +65,6 @@ float targetWeight = 0.0; // Target weight for termination condition
 long lastTime = 0;
 
 /*
-Sending too fast will overflow the computer buffer
-We create buffers to hold the data to be sent
-And send them every XXX ms
-*/
-
-/*
   Generic send function to host computer
   Sends a short (2 bytes) command
   followed by a float (4 bytes) value
@@ -102,7 +96,10 @@ enum Commands {
   TARGET_PRESSURE = 6,
   WEIGHT_READING = 7,
   EXTRACTION_STOPPED = 8,
-  PRESSURE_READING = 9
+  PRESSURE_READING = 9,
+  PROFILE_SELECTION = 10,
+  SINE_PROFILE = 11,
+  STATIC_PROFILE = 12,
 };
 
 void onPacketReceived(const uint8_t *buffer, size_t size) {
@@ -175,16 +172,12 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
 
       { // Debug Prints
         DEBUG_PRINT("PID values set:");
-        DEBUG_PRINT("Setpoint: ");
-        DEBUG_PRINT(setpoint);
         DEBUG_PRINT("P: ");
         DEBUG_PRINT(p);
         DEBUG_PRINT("I: ");
         DEBUG_PRINT(i);
         DEBUG_PRINT("D: ");
         DEBUG_PRINT(d);
-        DEBUG_PRINT("Target Weight: ");
-        DEBUG_PRINT(weight);
       }
 
       // Start PID control
@@ -198,6 +191,82 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
       DEBUG_PRINT("Invalid PID Command");
     }
     break;
+  }
+
+  case PROFILE_SELECTION: {
+    // Check if the size is correct (command + 1 short)
+    if (size >= sizeof(short)) {
+      short profileType;
+      memcpy(&profileType, buffer + sizeof(short), sizeof(short));
+      DEBUG_PRINT(profileType);
+      // Determine the profile type and set the global profile object
+      // accordingly
+      switch (profileType) {
+      case SINE_PROFILE: {
+        // Create and set a Sine Wave profile
+        // Extract the profile parameters
+        float amplitude, frequency, offset;
+        short duration;
+
+        // buffer starts with command short, type short, 3 floats, 1 short
+        memcpy(&amplitude, buffer + 2 * sizeof(short), sizeof(float));
+        memcpy(&frequency, buffer + 2 * sizeof(short) + sizeof(float),
+               sizeof(float));
+        memcpy(&offset, buffer + 2 * sizeof(short) + 2 * sizeof(float),
+               sizeof(float));
+        memcpy(&duration, buffer + 2 * sizeof(short) + 3 * sizeof(float),
+               sizeof(short));
+
+        DEBUG_PRINT("Sine parameters set:");
+        DEBUG_PRINT("Amplitude: ");
+        DEBUG_PRINT(amplitude);
+        DEBUG_PRINT("Frequency: ");
+        DEBUG_PRINT(frequency);
+        DEBUG_PRINT("Offset: ");
+        DEBUG_PRINT(offset);
+        DEBUG_PRINT("Duration: ");
+        DEBUG_PRINT(duration);
+
+        extractionProfile = ExtractionProfile(
+            SINE_WAVE, duration); // Replace with your profile class
+        extractionProfile.setSineParameters(amplitude, frequency,
+                                            offset); // Set profile parameters
+        break;
+      }
+        // case RAMPING:
+        //   // Create and set a Ramping profile
+        //   extractionProfile = MyProfile(); // Replace with your profile class
+        //   extractionProfile.setRampingParameters(9.0, 2000, 2000); // Set
+        //   profile parameters break;
+
+      case STATIC_PROFILE: {
+        // Create and set a Static profile
+        float pressure;
+        short duration;
+
+        // buffer starts with command short, type short, 1 float, 1 short
+        memcpy(&pressure, buffer + 2 * sizeof(short), sizeof(float));
+        memcpy(&duration, buffer + 2 * sizeof(short) + sizeof(float),
+               sizeof(short));
+        DEBUG_PRINT("Static parameters set:");
+        DEBUG_PRINT("Pressure: ");
+        DEBUG_PRINT(pressure);
+        DEBUG_PRINT("Duration: ");
+        DEBUG_PRINT(duration);
+
+        extractionProfile = ExtractionProfile(
+            STATIC, duration); // Replace with your profile class
+        extractionProfile.setStaticPressure(pressure); // Set profile parameters
+        break;
+      }
+
+        // Add cases for other profile types as needed
+
+      default:
+        DEBUG_PRINT("Invalid Profile Type");
+        break;
+      }
+    }
   }
   }
 }
@@ -217,7 +286,7 @@ void setup() {
     Extraction Profiles
     Only inlude the profile that you want to run
   */
-  extractionProfile.setSineParameters(1.0, 0.4, 8.0);
+  // extractionProfile.setSineParameters(1.0, 0.4, 8.0);
   // extractionProfile.setRampingParameters(9.0, 2000, 2000);
   // extractionProfile.setStaticPressure(8.0);
 }

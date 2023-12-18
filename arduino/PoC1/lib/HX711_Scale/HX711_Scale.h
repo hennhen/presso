@@ -14,6 +14,8 @@ public:
 private:
     HX711 scale;
     float calibration_factor;
+    float sum_readings;  // Buffer to store sum last 5 readings
+    uint8_t count = 0;
 };
 
 #endif // HX711_SCALE_H

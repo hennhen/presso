@@ -14,7 +14,7 @@ screen = pygame.display.set_mode([100, 100])
 MOTOR_SPEED = 126
 
 # Initialize SerialCommunicator
-serial_comm = SerialCommunicator(115200)
+serial_comm = SerialCommunicator(250000)
 serial_comm.connect_id("1A86", "7523")
 
 # Main loop

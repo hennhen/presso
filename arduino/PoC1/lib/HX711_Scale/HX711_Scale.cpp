@@ -21,7 +21,7 @@ void HX711_Scale::updateWeight() {
     sum_readings += scale.get_units_direct();
     count++;
 
-    if (count % 5 == 0) {
+    if (count % 2 == 0) {
       weight = round(sum_readings * 10 / 5) / 10.0; // Calculate average
       // Serial1.println(weight);
       sum_readings = 0;          // Reset sum for the next set of 5 readings

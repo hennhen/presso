@@ -94,7 +94,6 @@ class SerialCommunicator:
         if self.serial and self.serial.is_open:
             try:
                 incoming_bytes = self.serial.read_until(b'\x00')  # Reading until zero byte
-                print('reading')
                 if len(incoming_bytes) < 2:  # At least 2 bytes (for a short command)
                     print("Packet < 2")
                     return None, None

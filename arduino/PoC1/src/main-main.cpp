@@ -56,7 +56,7 @@ ExtractionProfile extractionProfile =
 bool includeWeight = false;
 
 unsigned long lastSendTime = 0;
-const unsigned long sendInterval = 10; // Send data every XXX ms
+const unsigned long sendInterval = 0; // Send data every XXX ms
 
 float currPressure;
 float currDutyCycle;
@@ -84,41 +84,6 @@ void sendFloat(short command, float value = 0.0) {
   // DEBUG_PRINT(command);
   // DEBUG_PRINT("Value: ");
   // DEBUG_PRINT(value);
-}
-
-const int MAX_BUFFER_SIZE = 1500;
-
-// create a 2 x 800 array of floats and commands
-int dataFloatBuffer[MAX_BUFFER_SIZE];
-short dataShortBuffer[MAX_BUFFER_SIZE];
-uint8_t bufferCount = 0; // Counter for the number of packets in the buffer
-
-// Variables to keep track of the buffer
-int bufferStart = 0; // Points to the start of the queue
-int bufferEnd = 0;   // Points to the end of the queue
-
-void enqueueData(short command, float value) {
-  if ((bufferEnd + 1) % MAX_BUFFER_SIZE !=
-      bufferStart) { // Check for buffer overflow
-    dataShortBuffer[bufferEnd] = command;
-    dataFloatBuffer[bufferEnd] = static_cast<int>(value * 10);
-    bufferEnd = (bufferEnd + 1) % MAX_BUFFER_SIZE;
-  } else {
-    // Buffer overflow, handle accordingly
-    // For example, you might want to send an error message or stop adding new
-    // data
-    DEBUG_PRINT("Buffer Overflow");
-  }
-}
-
-bool isBufferEmpty() { return bufferStart == bufferEnd; }
-
-void dequeueData() {
-  if (bufferStart != bufferEnd) { // Check if buffer is not empty
-    sendFloat(dataShortBuffer[bufferStart],
-              dataFloatBuffer[bufferStart] / 10.0f);
-    bufferStart = (bufferStart + 1) % MAX_BUFFER_SIZE;
-  }
 }
 
 /*
@@ -306,7 +271,7 @@ void loop() {
       isExtracting = false;
 
       // queue stop command
-      enqueueData(EXTRACTION_STOPPED, 0.0);
+      // enqueueData(EXTRACTION_STOPPED, 0.0);
     }
   }
 

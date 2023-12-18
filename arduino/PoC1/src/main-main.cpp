@@ -56,7 +56,7 @@ ExtractionProfile extractionProfile =
 bool includeWeight = false;
 
 unsigned long lastSendTime = 0;
-const unsigned long sendInterval = 0; // Send data every XXX ms
+const unsigned long sendInterval = 20; // Send data every XXX ms
 
 float currPressure;
 float currDutyCycle;

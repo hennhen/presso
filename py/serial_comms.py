@@ -31,6 +31,7 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.d = d
 
         self.arduino_serial = arduino_serial
+
         self.pressures = []
         self.target_pressures = []
         self.duty_cycles = []
@@ -69,7 +70,7 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.timer.setInterval(1)
         self.timer.timeout.connect(self.receive_serial_data)
         self.timer.start()
-
+    
     def setup_pressure_plot(self):
         # self.pressure_plot.setBackground("w")
 
@@ -161,6 +162,18 @@ class PlotWindow(QtWidgets.QMainWindow):
     def close_event(self):
         self.close()
 
+# Will be used to create new application window and graphs
+# Takes in arduino serial object and PID values
+# Sends the PID values to the arduino and starts the graph
+class GraphLauncher():
+    def __init__(self, arduino_serial, p, i, d):
+        arduino_serial.send_command(Command.SET_PID_VALUES, p, i, d, 1, 0)
+        app = QtWidgets.QApplication([])
+        main = PlotWindow(arduino_serial, p, i, d)
+        main.setGeometry(50, 50, 1000, 800)
+        main.show()
+        app.exec()
+
 if __name__ == "__main__":
     
     # Connect to the Arduino
@@ -186,15 +199,16 @@ if __name__ == "__main__":
     p = float(input("Enter P value: "))
     i = float(input("Enter I value: "))
     d = float(input("Enter D value: "))
-    # setpoint = float(input("Enter setpoint value: "))
-    # target_weight = float(input("Enter target weight value: "))
 
     # Send the PID values to the Arduino
-    arduino_serial.send_command(Command.SET_PID_VALUES, p, i, d, 1, 0)
+    # arduino_serial.send_command(Command.SET_PID_VALUES, p, i, d, 1, 0)
 
-    app = QtWidgets.QApplication([])
-    main = PlotWindow(arduino_serial, p, i, d)
-    main.setGeometry(50, 50, 1000, 800)
-    main.show()
-    app.exec()
+    # app = QtWidgets.QApplication([])
+    # main = PlotWindow(arduino_serial, p, i, d)
+    # main.setGeometry(50, 50, 1000, 800)
+    # main.show()
+    # app.exec()
+
+    graph_launcher = GraphLauncher(arduino_serial, 1,1,1)
+
     sys.exit(0)

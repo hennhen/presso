@@ -115,7 +115,7 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.weight_plot.setLabel("left", "Weight (g)", **{"color": "red", "font-size": "18px"})
         self.weight_plot.setLabel("bottom", "Time", **{"color": "red", "font-size": "18px"})
         self.weight_plot.showGrid(x=True, y=True)
-        self.weight_plot.enableAutoRange(axis=pg.ViewBox.YAxis)  # Enable auto-ranging for the Y-axis
+        self.weight_plot.setYRange(0, 20)
 
         # Get line references for updating the data
         self.weight_line = self.weight_plot.plot(self.weights, name="Weight", pen=weight_pen)

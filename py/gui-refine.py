@@ -3,9 +3,11 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
     QLineEdit, QLabel, QRadioButton, QGroupBox, QFormLayout
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QEvent
 
 import sys
+import json
+
 from serial_comms import GraphLauncher, PlotWindow
 from arduino_comms import SerialCommunicator
 from arduino_commands import Command
@@ -54,8 +56,11 @@ class ControlPanel(QWidget):
         profiles_layout.addWidget(self.ramp_radio)
         profile_group.setLayout(profiles_layout)
 
-        # Profile parameters
-        profile_params_layout = QVBoxLayout()
+        # Text box for manual movement
+        manual_movement_text = QLabel("Use left & right keys to manually move", alignment=Qt.AlignCenter)
+        
+        # Create a horizontal layout for profile parameters
+        profile_params_layout = QHBoxLayout()
 
         # Sine Profile parameters
         sine_group = QGroupBox("Sine Profile:")
@@ -96,24 +101,97 @@ class ControlPanel(QWidget):
         ramp_layout.addRow("Hold Duration (s):", self.hold_duration_input)
         ramp_group.setLayout(ramp_layout)
 
+        # Add profile groups to the horizontal layout
         profile_params_layout.addWidget(sine_group)
         profile_params_layout.addWidget(static_group)
         profile_params_layout.addWidget(ramp_group)
 
-        # Add sections to main layout
+        # Add sections to the main layout
         main_layout.addLayout(pid_layout)
         main_layout.addWidget(profile_group)
         main_layout.addLayout(profile_params_layout)
-
-        # Text box for manual movement
-        manual_movement_text = QLabel("Click empty space and use left & right keys to manually move:")
         main_layout.addWidget(manual_movement_text)
+
+        # Load preset values from JSON file or set defaults
+        self.load_preset_values()
 
         # Set the layout for the main window
         self.setLayout(main_layout)
 
         # Connect button clicks to functions
         self.start_button.clicked.connect(self.on_start_button_click)
+
+        # Set focus policy for manual movement
+        self.setFocusPolicy(Qt.StrongFocus)
+
+        # Set up key event filters for manual movement
+        self.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.KeyPress:
+            if event.key() == Qt.Key_Left:
+                print("Left arrow key pressed")
+                self.arduino_serial.send_command(Command.SET_MOTOR_SPEED, 126)
+            elif event.key() == Qt.Key_Right:
+                print("Right arrow key pressed")
+                self.arduino_serial.send_command(Command.SET_MOTOR_SPEED, -126)
+        elif event.type() == QEvent.KeyRelease:
+            if event.key() == Qt.Key_Left or event.key() == Qt.Key_Right:
+                print("Arrow key released")
+                self.arduino_serial.send_command(Command.SET_MOTOR_SPEED, 0)
+        elif event.type() == QEvent.Close:
+            print("Closing window. Saving preset values.")
+            self.save_preset_values()
+        return super(ControlPanel, self).eventFilter(obj, event)
+
+    # Function to load preset values from a JSON file
+    def load_preset_values(self):
+        try:
+            with open('./py/preset_values.json', 'r') as file:
+                data = json.load(file)
+                print(data)
+                self.p = float(data.get('p', 1))
+                self.i = float(data.get('i', 1))
+                self.d = float(data.get('d', 1))
+                self.duration = int(data.get('duration', 3000))
+
+                # Set the text box values using the provided syntax
+                self.p_input.setText(str(self.p))
+                self.i_input.setText(str(self.i))
+                self.d_input.setText(str(self.d))
+                self.duration_input.setText(str(self.duration))
+
+                # Set other text box values here
+                self.amplitude_input.setText(str(data.get('amplitude', 1)))
+                self.offset_input.setText(str(data.get('offset', 7)))
+                self.frequency_input.setText(str(data.get('frequency', 0.5)))
+                self.static_setpoint_input.setText(str(data.get('setpoint', 8)))
+                self.ramp_max_pressure_input.setText(str(data.get('max_pressure', 8)))
+                self.ramp_duration_input.setText(str(data.get('ramp_duration', 2)))
+                self.hold_pressure_input.setText(str(data.get('hold_pressure', 8)))
+                self.hold_duration_input.setText(str(data.get('hold_duration', 3)))
+
+        except FileNotFoundError:
+            # File doesn't exist, use default values
+            pass
+
+    def save_preset_values(self):
+        data = {
+            'p': self.p_input.text(),
+            'i': self.i_input.text(),
+            'd': self.d_input.text(),
+            'duration': self.duration_input.text(),
+            'amplitude': self.amplitude_input.text(),
+            'offset': self.offset_input.text(),
+            'frequency': self.frequency_input.text(),
+            'static_setpoint': self.static_setpoint_input.text(),
+            'ramp_max_pressure': self.ramp_max_pressure_input.text(),
+            'ramp_duration': self.ramp_duration_input.text(),
+            'hold_pressure': self.hold_pressure_input.text(),
+            'hold_duration': self.hold_duration_input.text()
+        }
+        with open('./py/preset_values.json', 'w') as file:
+            json.dump(data, file)
 
     def create_new_plot(self):
         # Create a new PlotWindow instance
@@ -151,7 +229,7 @@ class ControlPanel(QWidget):
     def mousePressEvent(self, event):
         # Set focus to the main window, which removes focus from the text boxes
         self.setFocus()
-        
+
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Left:
             print("Left arrow key pressed")

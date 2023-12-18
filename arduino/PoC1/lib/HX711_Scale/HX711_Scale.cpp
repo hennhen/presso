@@ -10,6 +10,13 @@ HX711_Scale::HX711_Scale(int dout, int sck, float calibration_factor)
 
 void HX711_Scale::tare() { scale.tare(10); }
 
+void HX711_Scale::reset() {
+  scale.tare(10);
+  weight = 0.0;
+  count = 0;
+  sum_readings = 0;
+}
+
 // Uses the non-blocking function
 // Will return the weight if the scale is ready
 // Also takes average of 5 readings
@@ -21,8 +28,8 @@ void HX711_Scale::updateWeight() {
     sum_readings += scale.get_units_direct();
     count++;
 
-    if (count % 10 == 0) {
-      weight = sum_readings / 10; // Calculate average
+    if (count % 8 == 0) {
+      weight = sum_readings / 8; // Calculate average
       if (weight < 0.0) {
         weight = 0.0;
       }

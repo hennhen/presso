@@ -56,7 +56,7 @@ ExtractionProfile extractionProfile =
 bool includeWeight = false;
 
 unsigned long lastSendTime = 0;
-const unsigned long sendInterval = 20; // Send data every XXX ms
+const unsigned long sendInterval = 5; // Send data every XXX ms
 
 float currPressure;
 float currDutyCycle;
@@ -182,6 +182,7 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
 
       // Start PID control
       DEBUG_PRINT("Starting extraction...");
+      scale.reset();
       pidController.setParameters(setpoint, p, i, d);
       extractionProfile.start(millis());
       isExtracting = true;

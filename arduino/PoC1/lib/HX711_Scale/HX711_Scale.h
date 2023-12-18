@@ -10,6 +10,7 @@ public:
     float weight;
     void tare();
     void updateWeight();
+    void reset();
 
 private:
     HX711 scale;

@@ -3,8 +3,6 @@ from random import randint
 from enum import Enum
 import struct
 
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import datetime as dt
 
 import serial

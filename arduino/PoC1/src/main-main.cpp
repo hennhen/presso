@@ -39,14 +39,15 @@ PressureSensor pSensor(pressurePin);
 // CytronController motor(pwmPin, dirPin);
 RoboController motor(&Serial2, 115200);
 PIDController pidController(motor, pSensor);
-HX711_Scale scale(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN,
-                  LOADCELL_CALIBRATION_FACTOR);
+
+// HX711_Scale scale(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN, LOADCELL_CALIBRATION_FACTOR);
 
 // PID Extraction Loop Parameters
 bool isExtracting = false;
 unsigned long extractionStartTime = 0;
 const unsigned long extractionDuration = 3000; // PID Loop timeout
 
+/* Placeholder profile. Will be replaced later */
 ExtractionProfile extractionProfile =
     ExtractionProfile(SINE_WAVE, extractionDuration);
 // ExtractionProfile extractionProfile = ExtractionProfile(RAMPING,
@@ -56,20 +57,18 @@ ExtractionProfile extractionProfile =
 bool includeWeight = false;
 
 unsigned long lastSendTime = 0;
-const unsigned long sendInterval = 5; // Send data every XXX ms
+const unsigned long sendInterval = 20; // Send data every XXX ms
 
 float currPressure;
 float currDutyCycle;
 float targetWeight = 0.0; // Target weight for termination condition
 
-long lastTime = 0;
-
-/*
-  Generic send function to host computer
-  Sends a short (2 bytes) command
-  followed by a float (4 bytes) value
-*/
 void sendFloat(short command, float value = 0.0) {
+  /*
+  All communications to the host computer starts with
+  - a short (2 bytes number) command
+  - followed by a float (4 bytes) value
+*/
   uint8_t buffer[sizeof(short) + sizeof(float)];
   memcpy(buffer, &command, sizeof(short));
   memcpy(buffer + sizeof(short), &value, sizeof(float));
@@ -80,17 +79,18 @@ void sendFloat(short command, float value = 0.0) {
   // DEBUG_PRINT(value);
 }
 
-/*
+enum Commands {
+  /*
   Commands enumumeration
   Used to identify the command sent from the host computer
   Must match the commands in the host computer code
  */
-enum Commands {
   /* Incoming */
   SET_MOTOR_SPEED = 1,
   SET_PID_VALUES = 2,
   SET_PRESSURE = 3,
   STOP = 4,
+
   /* Outgoing */
   DUTY_CYCLE = 5,
   TARGET_PRESSURE = 6,
@@ -103,6 +103,12 @@ enum Commands {
 };
 
 void onPacketReceived(const uint8_t *buffer, size_t size) {
+  /*
+  Receives commands from host computer
+  Always starts with a (short) command. 
+  Switch on the command and receive case dependent values
+*/
+
   // Ensure the buffer has at least the size of a short (for the command)
   if (size < sizeof(short)) {
     DEBUG_PRINT("Not enough data to read a command. Size: ");
@@ -182,7 +188,7 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
 
       // Start PID control
       DEBUG_PRINT("Starting extraction...");
-      scale.reset();
+      // scale.reset();
       pidController.setParameters(setpoint, p, i, d);
       extractionProfile.start(millis());
       isExtracting = true;
@@ -273,18 +279,19 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
 }
 
 void setup() {
+  #ifdef DEBUG
+  Serial1.begin(250000);
+  DEBUG_PRINT("debug print test...");
+#endif 
   motor.init();
   motor.stop();
   pSerial.begin(250000);
   pSerial.setPacketHandler(&onPacketReceived);
 
-#ifdef DEBUG
-  Serial1.begin(250000);
-  DEBUG_PRINT("debug print test...");
-#endif
+  // if(includeWeight) scale.init();
 
   /*
-    Extraction Profiles
+    Manual Extraction Profiles Setup
     Only inlude the profile that you want to run
   */
   // extractionProfile.setSineParameters(1.0, 0.4, 8.0);
@@ -292,11 +299,14 @@ void setup() {
   // extractionProfile.setStaticPressure(8.0);
 }
 
+long main_loop_start_time = 0;
+
 void loop() {
-  // lastTime = millis();
+  // main_loop_start_time = millis();
   pSerial.update();
   currPressure = pSensor.readPressure();
-  scale.updateWeight();
+
+  // if(includeWeight) scale.updateWeight();
 
   /*  If we're extracting, do the necessary checks
      This is to prevent spamming the serial port with data when not extracting
@@ -317,7 +327,8 @@ void loop() {
         sendFloat(DUTY_CYCLE, currDutyCycle);
         sendFloat(TARGET_PRESSURE, currTarget);
         sendFloat(PRESSURE_READING, currPressure);
-        sendFloat(WEIGHT_READING, scale.weight);
+        // sendFloat(WEIGHT_READING, scale.weight);
+
         // DEBUG_PRINT(currDutyCycle);
         // if (includeWeight) {
         //   sendFloat(WEIGHT_READING, scale.getWeight());
@@ -352,5 +363,5 @@ void loop() {
   // }
 
   // delay(1);
-  // DEBUG_PRINT(millis() - lastTime);
+  // DEBUG_PRINT(millis() - main_loop_start_time);
 }

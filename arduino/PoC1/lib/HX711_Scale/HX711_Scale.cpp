@@ -2,11 +2,19 @@
 #include <Arduino.h>
 
 HX711_Scale::HX711_Scale(int dout, int sck, float calibration_factor) 
-: scale(dout, sck), calibration_factor(calibration_factor) {
+: scale(dout, sck), _calibration_factor(calibration_factor) {
     scale.set_scale(calibration_factor);
     scale.tare(10);
     count = 0;
 }
+
+// bool HX711_Scale::init() {
+//   // scale = new HX711(_dout, _sck);
+//   scale.set_scale(_calibration_factor);
+//   scale.tare(10);
+//   count = 0;
+//   return true;
+// }
 
 void HX711_Scale::tare() { scale.tare(10); }
 
@@ -34,7 +42,7 @@ void HX711_Scale::updateWeight() {
         weight = 0.0;
       }
       // Serial1.println(weight);
-      sum_readings = 0;          // Reset sum for the next set of 5 readings
+      sum_readings = 0; // Reset sum for the next set of 5 readings
       count = 0;        // Reset count for the next set of 5 readings
     }
   }

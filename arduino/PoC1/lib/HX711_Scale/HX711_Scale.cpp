@@ -8,13 +8,13 @@ HX711_Scale::HX711_Scale(int dout, int sck, float calibration_factor)
     count = 0;
 }
 
-// bool HX711_Scale::init() {
-//   // scale = new HX711(_dout, _sck);
-//   scale.set_scale(_calibration_factor);
-//   scale.tare(10);
-//   count = 0;
-//   return true;
-// }
+bool HX711_Scale::init() {
+  // scale = new HX711(_dout, _sck);
+  scale.set_scale(_calibration_factor);
+  scale.tare(10);
+  count = 0;
+  return true;
+}
 
 void HX711_Scale::tare() { scale.tare(10); }
 

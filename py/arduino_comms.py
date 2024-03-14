@@ -77,7 +77,7 @@ class SerialCommunicator:
             except Exception as e:
                 print(f"Error sending command: {e}")
     
-    def create_pid_packet(self, p, i, d, setpoint, targetWeight=0):
+    def create_pid_packet(self, p, i, d, setpoint, targetWeight=10):
         packet = struct.pack('<hfffff', Command.SET_PID_VALUES.value, p, i, d, setpoint, targetWeight)
         return packet
 

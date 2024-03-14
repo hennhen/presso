@@ -197,7 +197,7 @@ class ControlPanel(QWidget):
         # Create a new PlotWindow instance
         self.plot_windows.append(PlotWindow(self.arduino_serial, self.p, self.i, self.d))
         self.plot_windows[-1].show()
-        arduino_serial.send_command(Command.SET_PID_VALUES, self.p, self.i, self.d, 1, 0)
+        arduino_serial.send_command(Command.SET_PID_VALUES, self.p, self.i, self.d, 1, 5)
 
     def on_start_button_click(self):
         # Get P, I, D values from text boxes

@@ -1,6 +1,7 @@
 #include "CytronController.h"
 #include "ExtractionProfile.h"
 #include "HX711_Scale.h"
+#include "NAU7802.h"
 #include "PIDController.h"
 #include "PressureSensor.h"
 #include "RoboController.h"
@@ -17,13 +18,14 @@
 #define DEBUG_PRINT(x)
 #endif
 
-#define pressurePin A0 // Define the pin for the pressure sensor
-#define pwmPin 6       // PWM Pin for Motor
-#define dirPin 7       // Direction Pin for Motor
+#define pressurePin A15 // Define the pin for the pressure sensor
+#define pwmPin 6        // PWM Pin for Motor
+#define dirPin 7        // Direction Pin for Motor
 #define LOADCELL_DOUT_PIN 20
 #define LOADCELL_SCK_PIN 21
 
 #define LOADCELL_CALIBRATION_FACTOR -1036.1112060547
+#define NAU7802_CALIBRATION_FACTOR 1030.71337
 
 #define PRESSURE_SETPOINT 4.0
 #define kP 500
@@ -40,7 +42,9 @@ PressureSensor pSensor(pressurePin);
 RoboController motor(&Serial2, 115200);
 PIDController pidController(motor, pSensor);
 
-// HX711_Scale scale(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN, LOADCELL_CALIBRATION_FACTOR);
+// HX711_Scale scale(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN,
+// LOADCELL_CALIBRATION_FACTOR);
+NAU7802 scale(NAU7802_CALIBRATION_FACTOR);
 
 // PID Extraction Loop Parameters
 bool isExtracting = false;
@@ -54,7 +58,7 @@ ExtractionProfile extractionProfile =
 // extractionDuration); ExtractionProfile extractionProfile =
 // ExtractionProfile(STATIC, extractionDuration);
 
-bool includeWeight = false;
+bool includeWeight = true;
 
 unsigned long lastSendTime = 0;
 const unsigned long sendInterval = 20; // Send data every XXX ms
@@ -105,7 +109,7 @@ enum Commands {
 void onPacketReceived(const uint8_t *buffer, size_t size) {
   /*
   Receives commands from host computer
-  Always starts with a (short) command. 
+  Always starts with a (short) command.
   Switch on the command and receive case dependent values
 */
 
@@ -188,7 +192,7 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
 
       // Start PID control
       DEBUG_PRINT("Starting extraction...");
-      // scale.reset();
+      scale.tare();
       pidController.setParameters(setpoint, p, i, d);
       extractionProfile.start(millis());
       isExtracting = true;
@@ -279,16 +283,18 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
 }
 
 void setup() {
-  #ifdef DEBUG
+#ifdef DEBUG
   Serial1.begin(250000);
   DEBUG_PRINT("debug print test...");
-#endif 
+#endif
   motor.init();
   motor.stop();
   pSerial.begin(250000);
   pSerial.setPacketHandler(&onPacketReceived);
 
-  // if(includeWeight) scale.init();
+  if (includeWeight) {
+    scale.init();
+  }
 
   /*
     Manual Extraction Profiles Setup
@@ -305,8 +311,8 @@ void loop() {
   // main_loop_start_time = millis();
   pSerial.update();
   currPressure = pSensor.readPressure();
-
-  // if(includeWeight) scale.updateWeight();
+  // DEBUG_PRINT("hi");
+  // DEBUG_PRINT(scale.read());
 
   /*  If we're extracting, do the necessary checks
      This is to prevent spamming the serial port with data when not extracting
@@ -330,9 +336,9 @@ void loop() {
         // sendFloat(WEIGHT_READING, scale.weight);
 
         // DEBUG_PRINT(currDutyCycle);
-        // if (includeWeight) {
-        //   sendFloat(WEIGHT_READING, scale.getWeight());
-        // }
+        if (includeWeight) {
+          sendFloat(WEIGHT_READING, scale.read());
+        }
       }
 
       /* Create and add the packets to queue */
@@ -362,6 +368,6 @@ void loop() {
   //   lastSendTime = millis();
   // }
 
-  // delay(1);
+  delay(10);
   // DEBUG_PRINT(millis() - main_loop_start_time);
 }

@@ -17,12 +17,12 @@ void setup() {
   Serial.println("Scale tared");
 }
 
-long lastTime = 0;
+long main_loop_start_time = 0;
 void loop() {
-  scale.updateWeight();
+  // scale.updateWeight();
   // Serial.print("Weight: ");
-  Serial.println(scale.weight);
+  // Serial.println(scale.weight);
   // Serial.println(" grams");
-  Serial.println(millis() - lastTime);
-  lastTime = millis();
+  Serial.println(millis() - main_loop_start_time);
+  main_loop_start_time = millis();
 }

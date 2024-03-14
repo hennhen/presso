@@ -61,5 +61,6 @@ void PIDController::setParameters(float setpoint, float kp, float ki, float kd) 
     _eIntegral = 0; // Reset integral component when parameters change
     _ePrev = 0; // Reset previous error
     _eDerivative = 0; // Reset derivative component
+    _prevT = 0;
 }
 

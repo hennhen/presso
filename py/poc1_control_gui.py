@@ -1,88 +1,126 @@
-import pygame
-import pygame_gui
-import pygame
-import pygame_gui
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QLineEdit, QLabel, QHBoxLayout
+from PyQt5.QtCore import Qt
+from pyqtgraph.Qt import QtGui, QtCore
+import sys
+from serial_comms import GraphLauncher, PlotWindow
+from arduino_comms import SerialCommunicator
+from arduino_commands import Command
 
-def main():
+QApplication.setAttribute(QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+
+class MyWindow(QWidget):
+    def __init__(self, arduino_serial: SerialCommunicator):
+        super().__init__()
+
+        self.arduino_serial = arduino_serial
+        self.p = 1
+        self.i = 1
+        self.d = 1
+        self.plot_windows = []
+
+        # Create widgets
+        self.label_p = QLabel("P:")
+        self.label_p.setStyleSheet("font-size: 30px")  # Increase font size
+        self.textbox_p = QLineEdit()
+        self.textbox_p.setStyleSheet("font-size: 30px")  # Increase font size
+        self.textbox_p.setMinimumSize(200, 50)  # Increase text box size
+        self.label_i = QLabel("I:")
+        self.label_i.setStyleSheet("font-size: 30px")  # Increase font size
+        self.textbox_i = QLineEdit()
+        self.textbox_i.setStyleSheet("font-size: 30px")  # Increase font size
+        self.textbox_i.setMinimumSize(200, 50)  # Increase text box size
+        self.label_d = QLabel("D:")
+        self.label_d.setStyleSheet("font-size: 30px")  # Increase font size
+        self.textbox_d = QLineEdit()
+        self.textbox_d.setStyleSheet("font-size: 30px")  # Increase font size
+        self.textbox_d.setMinimumSize(200, 50)  # Increase text box size
+        self.start_button = QPushButton("Start & Plot")
+        self.start_button.setStyleSheet("font-size: 30px")  # Increase font size
+
+        # Set up layout
+        layout = QVBoxLayout()
+        
+        # Create horizontal layouts for P, I, D pairs
+        layout_p = QHBoxLayout()
+        layout_p.addWidget(self.label_p)
+        layout_p.addWidget(self.textbox_p)
+        
+        layout_i = QHBoxLayout()
+        layout_i.addWidget(self.label_i)
+        layout_i.addWidget(self.textbox_i)
+        
+        layout_d = QHBoxLayout()
+        layout_d.addWidget(self.label_d)
+        layout_d.addWidget(self.textbox_d)
+        
+        # Add P, I, D pairs vertically
+        layout.addLayout(layout_p)
+        layout.addLayout(layout_i)
+        layout.addLayout(layout_d)
+        
+        layout.addWidget(self.start_button)
+
+        # Set the layout for the main window
+        self.setLayout(layout)
+
+        # Connect button clicks to functions
+        self.start_button.clicked.connect(self.on_start_button_click)
+
+    def create_new_plot(self):
+        # Create a new PlotWindow instance
+        self.plot_windows.append(PlotWindow(self.arduino_serial, self.p, self.i, self.d))
+        self.plot_windows[-1].show()
+        arduino_serial.send_command(Command.SET_PID_VALUES, self.p, self.i, self.d, 1, 0)
+
+    def on_start_button_click(self):
+        # Get P, I, D values from text boxes
+        self.p = float(self.textbox_p.text())
+        self.i = float(self.textbox_i.text())
+        self.d = float(self.textbox_d.text())
+        
+        print(f"P: {self.p}, I: {self.i}, D: {self.d}")
+
+        # Create a new plot with the updated PID values
+        self.create_new_plot()
+
+    def mousePressEvent(self, event):
+        # Set focus to the main window, which removes focus from the text boxes
+        self.setFocus()
+    
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Left:
+            print("Left arrow key pressed")
+            arduino_serial.send_command(Command.SET_MOTOR_SPEED, 126)
+        elif event.key() == Qt.Key_Right:
+            print("Right arrow key pressed")
+            arduino_serial.send_command(Command.SET_MOTOR_SPEED, -126)
+
+    def keyReleaseEvent(self, event):
+        if event.key() == Qt.Key_Left:
+            print("Left arrow key released")
+            arduino_serial.send_command(Command.SET_MOTOR_SPEED, 0)
+        elif event.key() == Qt.Key_Right:
+            print("Right arrow key released")
+            arduino_serial.send_command(Command.SET_MOTOR_SPEED, 0)
+
+if __name__ == '__main__':
+    # Connect to the Arduino
+    arduino_serial = SerialCommunicator(baudrate=250000)
+
     try:
-        # Pygame setup
-        pygame.init()
-        pygame.display.set_caption('PID Controller')
-        window_surface = pygame.display.set_mode((500, 400))  # Adjust window size
-
-        # GUI Manager
-        manager = pygame_gui.UIManager((500, 400))  # Adjust manager size
-
-        # PID Input fields
-        label_p = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((10, 50), (80, 30)), text='P:', manager=manager)
-        input_p = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((100, 50), (100, 30)), manager=manager)  # Adjust input field size
-        input_p.set_text('400')  # Set default value for P
-
-        label_i = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((10, 100), (80, 30)), text='I:', manager=manager)
-        input_i = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((100, 100), (100, 30)), manager=manager)  # Adjust input field size
-        input_i.set_text('4')  # Set default value for I
-
-        label_d = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((10, 150), (80, 30)), text='D:', manager=manager)
-        input_d = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((100, 150), (100, 30)), manager=manager)  # Adjust input field size
-        input_d.set_text('0')  # Set default value for D
-
-        label_setpoint = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((10, 200), (80, 30)), text='Setpoint:', manager=manager)
-        input_setpoint = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((100, 200), (100, 30)), manager=manager)  # Adjust input field size
-        input_setpoint.set_text('5')  # Set default value for Setpoint
-
-        # Motor Control section
-        label_speed = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((300, 50), (120, 30)), text='Movement Speed:', manager=manager)  # Adjust label position
-        input_speed = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((430, 50), (60, 30)), manager=manager)  # Adjust input field position
-        input_speed.set_text('100')  # Set default value for Movement Speed
-
-        button_up = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((430, 100), (60, 30)), text='Up', manager=manager)  # Adjust button position
-        button_down = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((430, 140), (60, 30)), text='Down', manager=manager)  # Adjust button position
-
-        label_instructions = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((300, 200), (180, 30)), text='Use arrow keys to move', manager=manager)  # Adjust label position
-
-        # Run Button
-        button_run = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((100, 250), (100, 50)), text='Run', manager=manager)
-        # Clock
-        clock = pygame.time.Clock()
-        is_running = True
-
-        while is_running:
-            time_delta = clock.tick(60)/1000.0
-
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    is_running = False
-
-                # Handle Pygame GUI events
-                manager.process_events(event)
-
-                # Handle button click
-                if event.type == pygame_gui.UI_BUTTON_PRESSED:
-                    if event.ui_element == button_run:
-                        p_value = input_p.get_text()
-                        i_value = input_i.get_text()
-                        d_value = input_d.get_text()
-                        print(f"Run with PID: P={p_value}, I={i_value}, D={d_value}")
-                    elif event.ui_element == button_up:
-                        print("Button Up clicked")
-                        # Add your code for button up functionality here
-                    elif event.ui_element == button_down:
-                        print("Button Down clicked")
-                        # Add your code for button down functionality here
-
-            # Update GUI
-            manager.update(time_delta)
-
-            # Render everything
-            window_surface.fill((66, 66, 66))  # Set background color
-            manager.draw_ui(window_surface)
-            pygame.display.update()
-
-        pygame.quit()
-
+        arduino_serial.connect_id(target_vid="1A86", target_pid="7523")
+        if arduino_serial.serial.is_open:
+            print("Connected to {0}.".format(arduino_serial.port))
+        else:
+            print("Could not connect to Arduino.")
+            sys.exit(1)
     except Exception as e:
-        print(f"An error occurred: {e}")
-        pygame.quit()
+        print(f"Error connecting to Arduino: {e}")
+        sys.exit(1)
 
-if __name__ == "__main__":
-    main()
+    app = QApplication(sys.argv)
+    window = MyWindow(arduino_serial)
+    window.setWindowTitle("Qt5 Application")
+    window.setGeometry(100, 100, 500, 500)
+    window.show()
+    sys.exit(app.exec_())

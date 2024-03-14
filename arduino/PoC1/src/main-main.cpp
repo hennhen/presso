@@ -1,6 +1,7 @@
 #include "CytronController.h"
 #include "ExtractionProfile.h"
 #include "HX711_Scale.h"
+#include "NAU7802.h"
 #include "PIDController.h"
 #include "PressureSensor.h"
 #include "RoboController.h"
@@ -17,13 +18,14 @@
 #define DEBUG_PRINT(x)
 #endif
 
-#define pressurePin A0 // Define the pin for the pressure sensor
-#define pwmPin 6       // PWM Pin for Motor
-#define dirPin 7       // Direction Pin for Motor
+#define pressurePin A15 // Define the pin for the pressure sensor
+#define pwmPin 6        // PWM Pin for Motor
+#define dirPin 7        // Direction Pin for Motor
 #define LOADCELL_DOUT_PIN 20
 #define LOADCELL_SCK_PIN 21
 
 #define LOADCELL_CALIBRATION_FACTOR -1036.1112060547
+#define NAU7802_CALIBRATION_FACTOR 1030.71337
 
 #define PRESSURE_SETPOINT 4.0
 #define kP 500
@@ -39,43 +41,38 @@ PressureSensor pSensor(pressurePin);
 // CytronController motor(pwmPin, dirPin);
 RoboController motor(&Serial2, 115200);
 PIDController pidController(motor, pSensor);
-HX711_Scale scale(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN,
-                  LOADCELL_CALIBRATION_FACTOR);
+
+// HX711_Scale scale(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN,
+// LOADCELL_CALIBRATION_FACTOR);
+NAU7802 scale(NAU7802_CALIBRATION_FACTOR);
 
 // PID Extraction Loop Parameters
 bool isExtracting = false;
 unsigned long extractionStartTime = 0;
 const unsigned long extractionDuration = 3000; // PID Loop timeout
 
+/* Placeholder profile. Will be replaced later */
 ExtractionProfile extractionProfile =
     ExtractionProfile(SINE_WAVE, extractionDuration);
 // ExtractionProfile extractionProfile = ExtractionProfile(RAMPING,
 // extractionDuration); ExtractionProfile extractionProfile =
 // ExtractionProfile(STATIC, extractionDuration);
 
-bool includeWeight = false;
+bool includeWeight = true;
 
 unsigned long lastSendTime = 0;
-const unsigned long sendInterval = 10; // Send data every XXX ms
+const unsigned long sendInterval = 20; // Send data every XXX ms
 
 float currPressure;
 float currDutyCycle;
 float targetWeight = 0.0; // Target weight for termination condition
 
-long lastTime = 0;
-
-/*
-Sending too fast will overflow the computer buffer
-We create buffers to hold the data to be sent
-And send them every XXX ms
-*/
-
-/*
-  Generic send function to host computer
-  Sends a short (2 bytes) command
-  followed by a float (4 bytes) value
-*/
 void sendFloat(short command, float value = 0.0) {
+  /*
+  All communications to the host computer starts with
+  - a short (2 bytes number) command
+  - followed by a float (4 bytes) value
+*/
   uint8_t buffer[sizeof(short) + sizeof(float)];
   memcpy(buffer, &command, sizeof(short));
   memcpy(buffer + sizeof(short), &value, sizeof(float));
@@ -86,61 +83,36 @@ void sendFloat(short command, float value = 0.0) {
   // DEBUG_PRINT(value);
 }
 
-const int MAX_BUFFER_SIZE = 1500;
-
-// create a 2 x 800 array of floats and commands
-int dataFloatBuffer[MAX_BUFFER_SIZE];
-short dataShortBuffer[MAX_BUFFER_SIZE];
-uint8_t bufferCount = 0; // Counter for the number of packets in the buffer
-
-// Variables to keep track of the buffer
-int bufferStart = 0; // Points to the start of the queue
-int bufferEnd = 0;   // Points to the end of the queue
-
-void enqueueData(short command, float value) {
-  if ((bufferEnd + 1) % MAX_BUFFER_SIZE !=
-      bufferStart) { // Check for buffer overflow
-    dataShortBuffer[bufferEnd] = command;
-    dataFloatBuffer[bufferEnd] = static_cast<int>(value * 10);
-    bufferEnd = (bufferEnd + 1) % MAX_BUFFER_SIZE;
-  } else {
-    // Buffer overflow, handle accordingly
-    // For example, you might want to send an error message or stop adding new
-    // data
-    DEBUG_PRINT("Buffer Overflow");
-  }
-}
-
-bool isBufferEmpty() { return bufferStart == bufferEnd; }
-
-void dequeueData() {
-  if (bufferStart != bufferEnd) { // Check if buffer is not empty
-    sendFloat(dataShortBuffer[bufferStart],
-              dataFloatBuffer[bufferStart] / 10.0f);
-    bufferStart = (bufferStart + 1) % MAX_BUFFER_SIZE;
-  }
-}
-
-/*
+enum Commands {
+  /*
   Commands enumumeration
   Used to identify the command sent from the host computer
   Must match the commands in the host computer code
  */
-enum Commands {
   /* Incoming */
   SET_MOTOR_SPEED = 1,
   SET_PID_VALUES = 2,
   SET_PRESSURE = 3,
   STOP = 4,
+
   /* Outgoing */
   DUTY_CYCLE = 5,
   TARGET_PRESSURE = 6,
   WEIGHT_READING = 7,
   EXTRACTION_STOPPED = 8,
-  PRESSURE_READING = 9
+  PRESSURE_READING = 9,
+  PROFILE_SELECTION = 10,
+  SINE_PROFILE = 11,
+  STATIC_PROFILE = 12,
 };
 
 void onPacketReceived(const uint8_t *buffer, size_t size) {
+  /*
+  Receives commands from host computer
+  Always starts with a (short) command.
+  Switch on the command and receive case dependent values
+*/
+
   // Ensure the buffer has at least the size of a short (for the command)
   if (size < sizeof(short)) {
     DEBUG_PRINT("Not enough data to read a command. Size: ");
@@ -210,20 +182,17 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
 
       { // Debug Prints
         DEBUG_PRINT("PID values set:");
-        DEBUG_PRINT("Setpoint: ");
-        DEBUG_PRINT(setpoint);
         DEBUG_PRINT("P: ");
         DEBUG_PRINT(p);
         DEBUG_PRINT("I: ");
         DEBUG_PRINT(i);
         DEBUG_PRINT("D: ");
         DEBUG_PRINT(d);
-        DEBUG_PRINT("Target Weight: ");
-        DEBUG_PRINT(weight);
       }
 
       // Start PID control
       DEBUG_PRINT("Starting extraction...");
+      scale.tare();
       pidController.setParameters(setpoint, p, i, d);
       extractionProfile.start(millis());
       isExtracting = true;
@@ -234,34 +203,116 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
     }
     break;
   }
+
+  case PROFILE_SELECTION: {
+    // Check if the size is correct (command + 1 short)
+    if (size >= sizeof(short)) {
+      short profileType;
+      memcpy(&profileType, buffer + sizeof(short), sizeof(short));
+      DEBUG_PRINT(profileType);
+      // Determine the profile type and set the global profile object
+      // accordingly
+      switch (profileType) {
+      case SINE_PROFILE: {
+        // Create and set a Sine Wave profile
+        // Extract the profile parameters
+        float amplitude, frequency, offset;
+        short duration;
+
+        // buffer starts with command short, type short, 3 floats, 1 short
+        memcpy(&amplitude, buffer + 2 * sizeof(short), sizeof(float));
+        memcpy(&frequency, buffer + 2 * sizeof(short) + sizeof(float),
+               sizeof(float));
+        memcpy(&offset, buffer + 2 * sizeof(short) + 2 * sizeof(float),
+               sizeof(float));
+        memcpy(&duration, buffer + 2 * sizeof(short) + 3 * sizeof(float),
+               sizeof(short));
+
+        DEBUG_PRINT("Sine parameters set:");
+        DEBUG_PRINT("Amplitude: ");
+        DEBUG_PRINT(amplitude);
+        DEBUG_PRINT("Frequency: ");
+        DEBUG_PRINT(frequency);
+        DEBUG_PRINT("Offset: ");
+        DEBUG_PRINT(offset);
+        DEBUG_PRINT("Duration: ");
+        DEBUG_PRINT(duration);
+
+        extractionProfile = ExtractionProfile(
+            SINE_WAVE, duration); // Replace with your profile class
+        extractionProfile.setSineParameters(amplitude, frequency,
+                                            offset); // Set profile parameters
+        break;
+      }
+        // case RAMPING:
+        //   // Create and set a Ramping profile
+        //   extractionProfile = MyProfile(); // Replace with your profile class
+        //   extractionProfile.setRampingParameters(9.0, 2000, 2000); // Set
+        //   profile parameters break;
+
+      case STATIC_PROFILE: {
+        // Create and set a Static profile
+        float pressure;
+        short duration;
+
+        // buffer starts with command short, type short, 1 float, 1 short
+        memcpy(&pressure, buffer + 2 * sizeof(short), sizeof(float));
+        memcpy(&duration, buffer + 2 * sizeof(short) + sizeof(float),
+               sizeof(short));
+        DEBUG_PRINT("Static parameters set:");
+        DEBUG_PRINT("Pressure: ");
+        DEBUG_PRINT(pressure);
+        DEBUG_PRINT("Duration: ");
+        DEBUG_PRINT(duration);
+
+        extractionProfile = ExtractionProfile(
+            STATIC, duration); // Replace with your profile class
+        extractionProfile.setStaticPressure(pressure); // Set profile parameters
+        break;
+      }
+
+        // Add cases for other profile types as needed
+
+      default:
+        DEBUG_PRINT("Invalid Profile Type");
+        break;
+      }
+    }
+  }
   }
 }
 
 void setup() {
+#ifdef DEBUG
+  Serial1.begin(250000);
+  DEBUG_PRINT("debug print test...");
+#endif
   motor.init();
   motor.stop();
   pSerial.begin(250000);
   pSerial.setPacketHandler(&onPacketReceived);
 
-#ifdef DEBUG
-  Serial1.begin(250000);
-  DEBUG_PRINT("debug print test...");
-#endif
+  if (includeWeight) {
+    scale.init();
+  }
 
   /*
-    Extraction Profiles
+    Manual Extraction Profiles Setup
     Only inlude the profile that you want to run
   */
-  extractionProfile.setSineParameters(1.0, 0.4, 8.0);
+  // extractionProfile.setSineParameters(1.0, 0.4, 8.0);
   // extractionProfile.setRampingParameters(9.0, 2000, 2000);
   // extractionProfile.setStaticPressure(8.0);
 }
 
+long main_loop_start_time = 0;
+
 void loop() {
-  // lastTime = millis();
+  // main_loop_start_time = millis();
   pSerial.update();
   currPressure = pSensor.readPressure();
-  scale.updateWeight();
+  // DEBUG_PRINT("hi");
+  // DEBUG_PRINT(scale.read());
 
   /*  If we're extracting, do the necessary checks
      This is to prevent spamming the serial port with data when not extracting
@@ -282,11 +333,12 @@ void loop() {
         sendFloat(DUTY_CYCLE, currDutyCycle);
         sendFloat(TARGET_PRESSURE, currTarget);
         sendFloat(PRESSURE_READING, currPressure);
-        sendFloat(WEIGHT_READING, scale.weight);
+        // sendFloat(WEIGHT_READING, scale.weight);
+
         // DEBUG_PRINT(currDutyCycle);
-        // if (includeWeight) {
-        //   sendFloat(WEIGHT_READING, scale.getWeight());
-        // }
+        if (includeWeight) {
+          sendFloat(WEIGHT_READING, scale.read());
+        }
       }
 
       /* Create and add the packets to queue */
@@ -306,7 +358,7 @@ void loop() {
       isExtracting = false;
 
       // queue stop command
-      enqueueData(EXTRACTION_STOPPED, 0.0);
+      // enqueueData(EXTRACTION_STOPPED, 0.0);
     }
   }
 
@@ -316,6 +368,6 @@ void loop() {
   //   lastSendTime = millis();
   // }
 
-  // delay(1);
-  // DEBUG_PRINT(millis() - lastTime);
+  delay(10);
+  // DEBUG_PRINT(millis() - main_loop_start_time);
 }

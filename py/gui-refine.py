@@ -150,26 +150,32 @@ class ControlPanel(QWidget):
             with open('./py/preset_values.json', 'r') as file:
                 data = json.load(file)
                 print(data)
-                self.p = float(data.get('p', 1))
-                self.i = float(data.get('i', 1))
-                self.d = float(data.get('d', 1))
-                self.duration = int(data.get('duration', 3000))
+                try:
+                    self.p = float(data.get('p', 1))
+                    self.i = float(data.get('i', 1))
+                    self.d = float(data.get('d', 1))
+                    self.duration = int(data.get('duration', 3000))
 
-                # Set the text box values using the provided syntax
-                self.p_input.setText(str(self.p))
-                self.i_input.setText(str(self.i))
-                self.d_input.setText(str(self.d))
-                self.duration_input.setText(str(self.duration))
+                    # Set the text box values using the provided syntax
+                    self.p_input.setText(str(self.p))
+                    self.i_input.setText(str(self.i))
+                    self.d_input.setText(str(self.d))
+                    self.duration_input.setText(str(self.duration))
 
-                # Set other text box values here
-                self.amplitude_input.setText(str(data.get('amplitude', 1)))
-                self.offset_input.setText(str(data.get('offset', 7)))
-                self.frequency_input.setText(str(data.get('frequency', 0.5)))
-                self.static_setpoint_input.setText(str(data.get('setpoint', 8)))
-                self.ramp_max_pressure_input.setText(str(data.get('max_pressure', 8)))
-                self.ramp_duration_input.setText(str(data.get('ramp_duration', 2)))
-                self.hold_pressure_input.setText(str(data.get('hold_pressure', 8)))
-                self.hold_duration_input.setText(str(data.get('hold_duration', 3)))
+                    # Set other text box values here
+                    self.amplitude_input.setText(str(data.get('amplitude', 1)))
+                    self.offset_input.setText(str(data.get('offset', 7)))
+                    self.frequency_input.setText(str(data.get('frequency', 0.5)))
+                    self.static_setpoint_input.setText(str(data.get('setpoint', 8)))
+                    self.ramp_max_pressure_input.setText(str(data.get('max_pressure', 8)))
+                    self.ramp_duration_input.setText(str(data.get('ramp_duration', 2)))
+                    self.hold_pressure_input.setText(str(data.get('hold_pressure', 8)))
+                    self.hold_duration_input.setText(str(data.get('hold_duration', 3)))
+
+                except ValueError as e:
+                    # Invalid values found. Just open up as normal
+                    print(f"Error loading preset values: {e}")
+                    pass
 
         except FileNotFoundError:
             # File doesn't exist, use default values

@@ -6,9 +6,6 @@
 #include "PressureSensor.h"
 #include "RoboController.h"
 #include <PacketSerial.h>
-#include <SoftwareSerial.h>
-#include <StandardCplusplus.h>
-#include <vector>
 
 #define DEBUG // Comment out this line if you don't want debug prints
 
@@ -18,7 +15,7 @@
 #define DEBUG_PRINT(x)
 #endif
 
-#define pressurePin A15 // Define the pin for the pressure sensor
+#define pressurePin A2 // Define the pin for the pressure sensor
 #define pwmPin 6        // PWM Pin for Motor
 #define dirPin 7        // Direction Pin for Motor
 #define LOADCELL_DOUT_PIN 20

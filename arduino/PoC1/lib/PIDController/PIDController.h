@@ -3,18 +3,18 @@
 
 #include <Arduino.h>
 #include "MotorController.h" 
-#include "PressureSensor.h"
+#include "ADSPressureSensor.h"
 
 class PIDController {
 public:
-    PIDController(MotorController& motor, PressureSensor& sensor);
+    PIDController(MotorController& motor, ADSPressureSensor& sensor);
     float updateStatic(); // Update PID calculations and control the motor
     float updateDynamic(float target); // Update PID calculations and control the motor
     void setParameters(float setpoint, float kp, float ki, float kd); // Set PID parameters
 
 private:
     MotorController& _motor;
-    PressureSensor& _sensor;
+    ADSPressureSensor& _sensor;
     float _setpoint;
     float _kp, _ki, _kd;
     float _eIntegral, _ePrev, _eDerivative;

@@ -3,9 +3,9 @@
 #include "HX711_Scale.h"
 #include "NAU7802.h"
 #include "PIDController.h"
-#include "PressureSensor.h"
 #include "RoboController.h"
 #include <PacketSerial.h>
+#include "ADSPressureSensor.h"
 
 #define DEBUG // Comment out this line if you don't want debug prints
 
@@ -34,7 +34,7 @@
 
 PacketSerial pSerial;
 
-PressureSensor pSensor(pressurePin);
+ADSPressureSensor pSensor;
 // CytronController motor(pwmPin, dirPin);
 RoboController motor(&Serial2, 115200);
 PIDController pidController(motor, pSensor);

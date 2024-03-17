@@ -1,1 +1,1 @@
-{"p": "200.0", "i": "0.1", "d": "0.0", "duration": "3000", "amplitude": "1", "offset": "7", "frequency": "0.5", "static_setpoint": "8", "ramp_max_pressure": "8", "ramp_duration": "2", "hold_pressure": "8", "hold_duration": "3"}
+{"p": "200", "i": "0.05", "d": "0.0", "duration": "10000", "amplitude": "1", "offset": "7", "frequency": "0.5", "static_setpoint": "4", "ramp_max_pressure": "8", "ramp_duration": "2", "hold_pressure": "8", "hold_duration": "3"}

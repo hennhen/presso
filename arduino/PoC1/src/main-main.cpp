@@ -1,11 +1,12 @@
+#include "ADSPressureSensor.h"
 #include "CytronController.h"
 #include "ExtractionProfile.h"
 #include "HX711_Scale.h"
+#include "HeaterController.h"
 #include "NAU7802.h"
 #include "PIDController.h"
 #include "RoboController.h"
 #include <PacketSerial.h>
-#include "ADSPressureSensor.h"
 
 #define DEBUG // Comment out this line if you don't want debug prints
 
@@ -16,8 +17,8 @@
 #endif
 
 #define pressurePin A2 // Define the pin for the pressure sensor
-#define pwmPin 6        // PWM Pin for Motor
-#define dirPin 7        // Direction Pin for Motor
+#define pwmPin 6       // PWM Pin for Motor
+#define dirPin 7       // Direction Pin for Motor
 #define LOADCELL_DOUT_PIN 20
 #define LOADCELL_SCK_PIN 21
 
@@ -280,6 +281,7 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
 }
 
 void setup() {
+  Wire.begin();
 #ifdef DEBUG
   Serial1.begin(250000);
   DEBUG_PRINT("debug print test...");
@@ -305,18 +307,11 @@ void setup() {
 long main_loop_start_time = 0;
 
 void loop() {
-  // main_loop_start_time = millis();
   pSerial.update();
   currPressure = pSensor.readPressure();
-  // DEBUG_PRINT("hi");
-  // DEBUG_PRINT(scale.read());
 
-  /*  If we're extracting, do the necessary checks
-     This is to prevent spamming the serial port with data when not extracting
-   */
   if (isExtracting) {
-    /* Check if the extraction duration has been reached in the target profile
-     */
+    // Check if the extraction duration has been reached in the target profile
     if (!extractionProfile.isFinished()) {
       /* Extracting. Get the target pressure from the profile */
       float currTarget = extractionProfile.getTarget(millis());
@@ -365,6 +360,6 @@ void loop() {
   //   lastSendTime = millis();
   // }
 
-  delay(10);
+  delay(20);
   // DEBUG_PRINT(millis() - main_loop_start_time);
 }

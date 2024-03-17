@@ -1,9 +1,11 @@
 import sys
+import typing
+from PyQt5 import QtGui
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
     QLineEdit, QLabel, QRadioButton, QGroupBox, QFormLayout
 )
-from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtCore import Qt, QEvent, QTimer, QThread, pyqtSignal
 
 import sys
 import json
@@ -11,6 +13,23 @@ import json
 from serial_comms import GraphLauncher, PlotWindow
 from arduino_comms import SerialCommunicator
 from arduino_commands import Command
+
+class SerialWorker(QThread):
+    data_received = pyqtSignal(object, object)  # Custom signal to emit command and value
+
+    def __init__(self, arduino_serial):
+        super().__init__()
+        self.arduino_serial = arduino_serial
+        self.running = True
+
+    def run(self):
+        while self.running:
+            command, value = self.arduino_serial.receive_response()
+            if command is not None:
+                self.data_received.emit(command, value)  # Emit the signal with the received data
+
+    def stop(self):
+        self.running = False
 
 class ControlPanel(QWidget):
     def __init__(self, arduino_serial):
@@ -127,6 +146,19 @@ class ControlPanel(QWidget):
         # Set up key event filters for manual movement
         self.installEventFilter(self)
 
+        # Initialize the serial worker and move it to a separate thread
+        self.serial_worker = SerialWorker(arduino_serial)
+        self.serial_worker.data_received.connect(self.handle_received_data)
+        self.serial_worker.start()
+
+    def handle_received_data(self, command, value):
+        # Handle the received data in the main thread
+        if command == Command.EXTRACTION_STOPPED.value:
+            print("Extraction Stopped.")
+        elif command == Command.PRESSURE_READING.value:
+            print(f"Pressure Reading: {value}")
+        elif command == Command.WEIGHT_READING.value:
+            print(f"Weight Reading: {value}")
     def eventFilter(self, obj, event):
         if event.type() == QEvent.KeyPress:
             if event.key() == Qt.Key_Left:
@@ -142,6 +174,10 @@ class ControlPanel(QWidget):
         elif event.type() == QEvent.Close:
             print("Closing window. Saving preset values.")
             self.save_preset_values()
+            # Stop the serial worker thread before closing the application
+            self.serial_worker.stop()
+            self.serial_worker.wait()  # Wait for the thread to finish
+            super(ControlPanel, self).closeEvent(event)
         return super(ControlPanel, self).eventFilter(obj, event)
 
     # Function to load preset values from a JSON file

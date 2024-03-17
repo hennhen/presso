@@ -309,6 +309,8 @@ long main_loop_start_time = 0;
 void loop() {
   pSerial.update();
   currPressure = pSensor.readPressure();
+  float weight = scale.read();
+  sendFloat(WEIGHT_READING, weight);
 
   if (isExtracting) {
     // Check if the extraction duration has been reached in the target profile

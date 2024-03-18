@@ -36,6 +36,9 @@ void SerialCommunicator::sendData(const Datas &datas, bool pressure,
     if (target) {
       sendFloat(TARGET_PRESSURE, datas.target);
     }
+    if (temperature) {
+      sendFloat(TEMPERATURE, datas.temperature);
+    }
     _lastSendTime = millis();
   }
 }

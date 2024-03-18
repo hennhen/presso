@@ -57,6 +57,7 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
       flags.inExtraction = true;
       flags.partialExtraction = true;
       flags.inPID = true;
+      flags.isHeating = false;
       datas.extractionStartTime = millis();
       extProfile.start(datas.extractionStartTime);
       serialComm.notifyExtractionStarted();
@@ -77,8 +78,10 @@ void setup() {
   Wire.begin();
   Serial1.begin(250000, SERIAL_8N1, 9, 10);
   Serial1.println("DEBUG TEST PRINT");
-  pSerial.begin(460800);
+  pSerial.begin(250000);
   pSerial.setPacketHandler(&onPacketReceived);
+
+  serialComm.setSendFrequency(50);
 
   /* Init hardware objects */
   motor.init();
@@ -86,6 +89,9 @@ void setup() {
 
   scale.init();
   scale.tare();
+
+  flags.isHeating = true;
+  heaterController.setTarget(50);
 }
 
 void loop() {
@@ -98,6 +104,7 @@ void loop() {
   /* Control Heater if Necessary */
   if (flags.isHeating) {
     heaterController.update();
+    datas.temperature = heaterController.read();
   }
 
   if (flags.inExtraction) {
@@ -125,14 +132,14 @@ void loop() {
   }
 
   /* Send and update serial */
-  serialComm.sendData(datas, true, true, true);
+  serialComm.sendData(datas, true, true, true, false, true);
   pSerial.update();
 
   /* Debug Prints */
-//   Serial1.printf("Pressure: %f bars\n", datas.pressure);
-//   Serial1.printf("Weight: %f grams\n", datas.weight);
+  //   Serial1.printf("Pressure: %f bars\n", datas.pressure);
+  //   Serial1.printf("Weight: %f grams\n", datas.weight);
 
   /* Loop time printing */
-//   unsigned long loopEndTime = millis();
+  //   unsigned long loopEndTime = millis();
   //   Serial1.printf("Loop took %lu ms\n", loopEndTime - loopStartTime);
 }

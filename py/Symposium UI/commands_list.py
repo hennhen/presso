@@ -19,5 +19,6 @@ class Command(Enum):
     PRESSURE_READING = 9
     PROFILE_SELECTION = 10
     EXTRACTION_STARTED = 17
+    TEMPERATURE = 18
 
 # Add any related functions or classes here if needed

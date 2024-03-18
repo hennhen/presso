@@ -4,10 +4,12 @@ import struct
 from enum import Enum
 from cobs import cobs
 from time import sleep
-from arduino_commands import Command
+import random
+import time
+from commands_list import Command
 
 class SerialCommunicator:
-    def __init__(self, baudrate, timeout=None):
+    def __init__(self, baudrate, timeout=None, simulate=False):
         """
         Initialize the serial communicator without specifying the port.
 
@@ -17,7 +19,8 @@ class SerialCommunicator:
         self.port = None
         self.baudrate = baudrate
         self.timeout = timeout
-        self.serial = None
+        self.simulate = simulate
+        self.serial = None if not simulate else True  # Simulate the serial connection
 
     def flush(self):
         self.serial.flush()
@@ -114,6 +117,13 @@ class SerialCommunicator:
         """
         Receive and decode a response from the serial connection.
         """
+        # if self.simulate:
+        #     # Simulate receiving data
+        #     time.sleep(0.1)  # Simulate the delay of receiving data
+        #     command = Command.PRESSURE_READING
+        #     value = random.uniform(5, 6)  # Generate a random value between 5 and 6
+        #     return command.value, value
+        
         if self.serial and self.serial.is_open:
             try:
                 incoming_bytes = self.serial.read_until(b'\x00')  # Reading until zero byte
@@ -147,6 +157,9 @@ class SerialCommunicator:
                     elif command == Command.DUTY_CYCLE.value and len(data_decoded) == 6:
                         duty_cycle_value = struct.unpack('<f', data_decoded[2:])[0]
                         return command, duty_cycle_value
+                    elif command == Command.TEMPERATURE.value and len(data_decoded) == 6:
+                        temperature_value = struct.unpack('<f', data_decoded[2:])[0]
+                        return command, temperature_value
                     elif command == Command.EXTRACTION_STARTED.value:
                         return command, None
                     else:
@@ -177,11 +190,17 @@ if __name__ == "__main__":
     print("hi")
     serial_comm = SerialCommunicator(250000)
     serial_comm.connect_id("1A86", "7523")
-    sleep(2)
+    sleep(1)
 
     # Send SET_PID_VALUES command with example PID values
     p_value = 3.0
     i_value = 0.01
     d_value = 1.0
     serial_comm.send_command(Command.SET_PID_VALUES, p_value, i_value, d_value)
+
+    while True:
+        command, value = serial_comm.receive_response()
+        print(f"Received command: {command}, value: {value}")
+
     serial_comm.close()
+

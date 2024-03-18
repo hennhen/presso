@@ -10,12 +10,13 @@ ADSPressureSensor::ADSPressureSensor(uint8_t address, uint8_t gain,
 }
 
 float ADSPressureSensor::readPressure() {
-  _ads.requestADC_Differential_0_1();
-  int16_t rawAdc = _ads.getValue();
-  float voltage =
-      5.0 +
-      _ads.toVoltage(rawAdc);    // Convert ADC value to voltage and add offset
-  return voltageToBars(voltage); // Convert voltage to pressure in bars
+  if (_ads.isReady()) {
+    int16_t rawAdc = _ads.getValue();
+    float voltage = 5.0 + _ads.toVoltage(rawAdc);
+    _pressure = voltageToBars(voltage);
+    _ads.requestADC_Differential_0_1();
+  }
+  return _pressure; // Convert voltage to pressure in bars
 }
 
 float ADSPressureSensor::voltageToBars(float voltage) {

@@ -7,6 +7,7 @@
 #include "PIDController.h"
 #include "RoboController.h"
 #include <PacketSerial.h>
+#include "StructsEnums.h"
 
 #define DEBUG // Comment out this line if you don't want debug prints
 
@@ -81,28 +82,6 @@ void sendFloat(short command, float value = 0.0) {
   // DEBUG_PRINT(value);
 }
 
-enum Commands {
-  /*
-  Commands enumumeration
-  Used to identify the command sent from the host computer
-  Must match the commands in the host computer code
- */
-  /* Incoming */
-  SET_MOTOR_SPEED = 1,
-  SET_PID_VALUES = 2,
-  SET_PRESSURE = 3,
-  STOP = 4,
-
-  /* Outgoing */
-  DUTY_CYCLE = 5,
-  TARGET_PRESSURE = 6,
-  WEIGHT_READING = 7,
-  EXTRACTION_STOPPED = 8,
-  PRESSURE_READING = 9,
-  PROFILE_SELECTION = 10,
-  SINE_PROFILE = 11,
-  STATIC_PROFILE = 12,
-};
 
 void onPacketReceived(const uint8_t *buffer, size_t size) {
   /*
@@ -191,7 +170,7 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
       // Start PID control
       DEBUG_PRINT("Starting extraction...");
       scale.tare();
-      pidController.setParameters(setpoint, p, i, d);
+      pidController.setParameters(p, i, d);
       extractionProfile.start(millis());
       isExtracting = true;
 
@@ -341,7 +320,6 @@ void loop() {
       // enqueueData(TARGET_PRESSURE, currTarget);
       // enqueueData(PRESSURE_READING, currPressure);
       // enqueueData(WEIGHT_READING, scale.weight);
-
     } else {
       /* Extraction finished. Stop the motor and PID control */
       motor.stop();

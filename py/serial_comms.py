@@ -75,6 +75,10 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.timer = QtCore.QTimer()
         self.timer.setInterval(1)
         self.timer.timeout.connect(self.receive_serial_data)
+        print("Waiting to receive start packet")
+        while not self.receive_serial_data():
+            pass
+        print("Received start packet")
         self.timer.start()
 
     def stop_communication(self):
@@ -155,6 +159,8 @@ class PlotWindow(QtWidgets.QMainWindow):
             elif command == Command.WEIGHT_READING.value:
                 # print(f"Weight Reading: {value}")
                 self.update_weight_plot(value)
+            elif command == Command.EXTRACTION_STARTED.value:
+                return True
 
     def update_pressure_plot(self, pressure):
         self.pressures.append(pressure)

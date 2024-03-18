@@ -18,6 +18,9 @@ class SerialCommunicator:
         self.baudrate = baudrate
         self.timeout = timeout
         self.serial = None
+
+    def flush(self):
+        self.serial.flush()
     
     def connect_id(self, target_vid, target_pid):
         """
@@ -66,6 +69,8 @@ class SerialCommunicator:
             packet = self.create_stop_packet()
         elif command == Command.PROFILE_SELECTION:
             packet = self.create_profile_selection_packet(*args)
+        elif command == Command.START_PARTIAL_EXTRACTION:
+            packet = struct.pack('<h', Command.START_PARTIAL_EXTRACTION.value)
         # Add other command cases as needed
 
         if self.serial and self.serial.is_open:
@@ -77,8 +82,8 @@ class SerialCommunicator:
             except Exception as e:
                 print(f"Error sending command: {e}")
     
-    def create_pid_packet(self, p, i, d, setpoint, targetWeight=10):
-        packet = struct.pack('<hfffff', Command.SET_PID_VALUES.value, p, i, d, setpoint, targetWeight)
+    def create_pid_packet(self, p, i, d):
+        packet = struct.pack('<hfff', Command.SET_PID_VALUES.value, p, i, d)
         return packet
 
     def create_profile_selection_packet(self, profile):
@@ -142,6 +147,11 @@ class SerialCommunicator:
                     elif command == Command.DUTY_CYCLE.value and len(data_decoded) == 6:
                         duty_cycle_value = struct.unpack('<f', data_decoded[2:])[0]
                         return command, duty_cycle_value
+                    elif command == Command.EXTRACTION_STARTED.value:
+                        return command, None
+                    else:
+                        print("Unknown command")
+                        return None, None
                 else:
                     print("Packet < 2: ")
                     print(data_decoded)
@@ -164,11 +174,14 @@ class SerialCommunicator:
 # Usage Example
 # Test with setting motor speed
 if __name__ == "__main__":
-    serial_comm = SerialCommunicator(115200)
+    print("hi")
+    serial_comm = SerialCommunicator(250000)
     serial_comm.connect_id("1A86", "7523")
-    sleep(4)
+    sleep(2)
 
-    serial_comm.send_command(Command.SET_MOTOR_SPEED, 200)
-    sleep(3)
-    serial_comm.send_command(Command.SET_MOTOR_SPEED, 0)
+    # Send SET_PID_VALUES command with example PID values
+    p_value = 3.0
+    i_value = 0.01
+    d_value = 1.0
+    serial_comm.send_command(Command.SET_PID_VALUES, p_value, i_value, d_value)
     serial_comm.close()

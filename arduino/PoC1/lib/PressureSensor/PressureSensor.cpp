@@ -1,8 +1,6 @@
 #include "PressureSensor.h"
 #include <Arduino.h>
 
-int a = 2;
-
 // Constructor for the PressureSensor class
 PressureSensor::PressureSensor(int sensorPin)
 : _sensorPin(sensorPin), 

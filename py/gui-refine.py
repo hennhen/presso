@@ -147,9 +147,9 @@ class ControlPanel(QWidget):
         self.installEventFilter(self)
 
         # Initialize the serial worker and move it to a separate thread
-        self.serial_worker = SerialWorker(arduino_serial)
-        self.serial_worker.data_received.connect(self.handle_received_data)
-        self.serial_worker.start()
+        # self.serial_worker = SerialWorker(arduino_serial)
+        # self.serial_worker.data_received.connect(self.handle_received_data)
+        # self.serial_worker.start()
 
     def handle_received_data(self, command, value):
         # Handle the received data in the main thread
@@ -237,9 +237,11 @@ class ControlPanel(QWidget):
 
     def create_new_plot(self):
         # Create a new PlotWindow instance
+        arduino_serial.send_command(Command.SET_PID_VALUES, self.p, self.i, self.d)
+        # arduino_serial.flush()
+        arduino_serial.send_command(Command.START_PARTIAL_EXTRACTION)
         self.plot_windows.append(PlotWindow(self.arduino_serial, self.p, self.i, self.d))
         self.plot_windows[-1].show()
-        arduino_serial.send_command(Command.SET_PID_VALUES, self.p, self.i, self.d, 1, 5)
 
     def on_start_button_click(self):
         # Get P, I, D values from text boxes
@@ -266,7 +268,6 @@ class ControlPanel(QWidget):
         arduino_serial.send_command(Command.PROFILE_SELECTION, profile)
         # Create a new plot with the updated PID values
         self.create_new_plot()
-
         
     def mousePressEvent(self, event):
         # Set focus to the main window, which removes focus from the text boxes
@@ -290,7 +291,7 @@ class ControlPanel(QWidget):
 
 if __name__ == '__main__':
     # Connect to the Arduino
-    arduino_serial = SerialCommunicator(baudrate=250000)
+    arduino_serial = SerialCommunicator(baudrate=460800)
 
     try:
         arduino_serial.connect_id(target_vid="1A86", target_pid="7523")

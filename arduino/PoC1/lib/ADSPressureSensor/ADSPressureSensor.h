@@ -13,7 +13,8 @@ private:
   ADS1115 _ads;  // ADS1115 instance
   uint8_t _gain;
   uint8_t _dataRate;
-
+  float _pressure;
+  
   // Pressure sensor voltage to pressure conversion constants
   const float _minVoltage = 0.5;   // Minimum voltage output at 0 bars
   const float _maxVoltage = 4.5;   // Maximum voltage output at 17.24 bars

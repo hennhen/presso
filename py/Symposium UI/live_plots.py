@@ -1,12 +1,14 @@
+import sys
 import pyqtgraph as pg
 from PyQt5 import QtWidgets, QtCore, QtGui
 from commands_list import Command
-from PyQt5.QtCore import pyqtSlot, QTimer
+from PyQt5.QtCore import pyqtSlot, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 
 QApplication.setAttribute(QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
 
-class PlotWindow(QtWidgets.QMainWindow):
+class LivePlotWidget(QtWidgets.QWidget):
+    extraction_plot_signal = pyqtSignal(object)
     def __init__(self, arduino_serial):
         super().__init__()
 
@@ -22,29 +24,22 @@ class PlotWindow(QtWidgets.QMainWindow):
 
     def init_ui(self):
         # Create a central widget to hold the plots
-        central_widget = QtWidgets.QWidget()
-        self.setCentralWidget(central_widget)
-        layout = QtWidgets.QVBoxLayout()
-        central_widget.setLayout(layout)
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)  # Ensure the window is deleted when closed
+
+        self.layout = QtWidgets.QVBoxLayout(self)
 
         # Title label
-        # self.title_label = QtWidgets.QLabel(f"P = {self.p}, I = {self.i}, D = {self.d}", alignment=QtCore.Qt.AlignCenter)
-        # layout.addWidget(self.title_label)
+        self.title_label = QtWidgets.QLabel(f"Live Plots", alignment=QtCore.Qt.AlignCenter)
+        self.layout.addWidget(self.title_label)
 
-        # Stop button
-        self.stop_button = QtWidgets.QPushButton("Stop")
-        self.stop_button.clicked.connect(self.stop_communication)
-        layout.addWidget(self.stop_button)
 
     def setup_plots(self):
         # Pressure Plot
         self.pressure_plot = pg.PlotWidget(name='Pressure')
         self.pressure_plot.setTitle("Pressure")
-        self.pressure_plot.setLabel('left', 'Pressure', units='Pa')
+        self.pressure_plot.setLabel('left', 'Pressure', units='Bar')
         self.pressure_plot.setLabel('bottom', 'Time', units='s')
         self.pressure_line = self.pressure_plot.plot(self.pressures, pen='r')
-        self.centralWidget().layout().addWidget(self.pressure_plot)
+        self.layout.addWidget(self.pressure_plot)
 
         # Duty Cycle Plot
         self.duty_cycle_plot = pg.PlotWidget(name='Duty Cycle')
@@ -52,7 +47,7 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.duty_cycle_plot.setLabel('left', 'Duty Cycle', units='%')
         self.duty_cycle_plot.setLabel('bottom', 'Time', units='s')
         self.duty_cycle_line = self.duty_cycle_plot.plot(self.duty_cycles, pen='y')
-        self.centralWidget().layout().addWidget(self.duty_cycle_plot)
+        self.layout.addWidget(self.duty_cycle_plot)
 
         # Weight Plot
         self.weight_plot = pg.PlotWidget(name='Weight')
@@ -60,7 +55,7 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.weight_plot.setLabel('left', 'Weight', units='g')
         self.weight_plot.setLabel('bottom', 'Time', units='s')
         self.weight_line = self.weight_plot.plot(self.weights, pen='b')
-        self.centralWidget().layout().addWidget(self.weight_plot)
+        self.layout.addWidget(self.weight_plot)
 
     @pyqtSlot(object, object)
     def update_plots(self, command, value):
@@ -71,13 +66,9 @@ class PlotWindow(QtWidgets.QMainWindow):
             self.update_duty_cycle_plot(value)
         elif command == Command.WEIGHT_READING.value:
             self.update_weight_plot(value)
+        elif command == Command.EXTRACTION_STOPPED.value:
+            self.extraction_plot_signal.emit(1)
         # Add other conditions for different types of data as needed
-
-
-    def receive_serial_data(self):
-        # This method should be connected to the signal from the SerialWorker
-        # For now, it's just a placeholder
-        pass
 
     def update_pressure_plot(self, pressure):
         self.pressures.append(pressure)
@@ -90,12 +81,24 @@ class PlotWindow(QtWidgets.QMainWindow):
     def update_weight_plot(self, weight):
         self.weights.append(weight)
         self.weight_line.setData(self.weights)
+    
 
-    def stop_communication(self):
-        self.timer.stop()
-        self.arduino_serial.send_command(Command.STOP)
+class MainTestWindow(QtWidgets.QMainWindow):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('Main Control Panel with Embedded Plot')
 
-    def closeEvent(self, event):
-        self.stop_communication()
-        event.accept()
+        # Create an instance of PlotWidget
+        self.plot_widget = LivePlotWidget(self)
+
+        # Set the central widget of the main window to be the PlotWidget
+        self.setCentralWidget(self.plot_widget)
+
+        # You can set up additional UI elements here as needed
+
+if __name__ == '__main__':
+    app = QtWidgets.QApplication(sys.argv)
+    main_window = MainTestWindow()
+    main_window.show()
+    sys.exit(app.exec_())
 

@@ -31,6 +31,8 @@ private:
   RoboClaw _roboClaw;
   long _baudrate;
   float _lastCurrent = 0.0;
+  int _lastSpeed = 0;
+  long _lastPosition = 0;
   static const uint8_t _address = 0x80; // RoboClaw address
   unsigned int _maxSpeed = 15000;
   unsigned int _ticksPerMm = 3365;

@@ -8,8 +8,7 @@
 class PIDController {
 public:
   PIDController(MotorController &motor, ADSPressureSensor &sensor);
-  float
-  updateDynamic(float target); // Update PID calculations and control the motor
+  short updateDynamic(float target);
   void setParameters(float kp, float ki, float kd); // Set PID parameters
   void setReady(bool ready); // Set the PID controller to ready
   bool isReady();            // Check if the PID controller is ready

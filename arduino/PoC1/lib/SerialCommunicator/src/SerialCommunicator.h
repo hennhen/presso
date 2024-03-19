@@ -42,6 +42,7 @@ private:
 
   // Private methods
   void sendFloat(short command, float value = 0.0);
+  void sendShort(short command, short value);
   PIDController createPIDObject(const std::vector<Datas> &datas);
   ExtractionProfile createExtractionProfile(const std::vector<float> &data);
 

@@ -23,6 +23,13 @@ void SerialCommunicator::sendFloat(short command, float value) {
   pSerial.send(buffer, sizeof(buffer));
 }
 
+void SerialCommunicator::sendShort(short command, short value) {
+  uint8_t buffer[sizeof(short) + sizeof(short)];
+  memcpy(buffer, &command, sizeof(short));
+  memcpy(buffer + sizeof(short), &value, sizeof(short));
+  pSerial.send(buffer, sizeof(buffer));
+}
+
 void SerialCommunicator::sendData(const Datas &datas, bool pressure,
                                   bool target, bool weight, bool dutyCycle,
                                   bool temperature, bool heaterStatus,
@@ -39,6 +46,19 @@ void SerialCommunicator::sendData(const Datas &datas, bool pressure,
     if (temperature) {
       sendFloat(TEMPERATURE, datas.temperature);
     }
+    if (motorCurrent) {
+      sendFloat(MOTOR_CURRENT, datas.motorCurrent);
+    }
+    if (speed) {
+      sendFloat(MOTOR_SPEED, datas.speed);
+    }
+    if (position) {
+      sendFloat(MOTOR_POSITION, datas.position);
+    }
+    if (dutyCycle) {
+      sendShort(DUTY_CYCLE, datas.dutyCycle);
+    }
+
     _lastSendTime = millis();
   }
 }
@@ -57,7 +77,7 @@ void SerialCommunicator::notifyExtractionStopped() {
   sendFloat(EXTRACTION_STOPPED, 0.0f);
 }
 
-// 0=fail, 1=sucess, 2 = start partial extraction, 3 = STOP
+// 0=fail, 1=sucess, 2 = start partial extraction, 3 = STOP, 4 = tare
 uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
                                             size_t size) {
   // Ensure the buffer has at least the size of a short (for the command)
@@ -73,7 +93,7 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
 
   // Switch on the command
   switch (command) {
-  case SET_MOTOR_SPEED:
+  case SET_MOTOR_SPEED: {
     // Serial1.print("set motor speed: ");
     // Check if the size is correct (command + 1 float)
     if (size == sizeof(short) + sizeof(float)) {
@@ -89,6 +109,7 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
       return 0;
     }
     break;
+  }
   case STOP:
     return 3;
     break;
@@ -96,7 +117,7 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
     // Handle heater setpoint command
     break;
   case TARE:
-    // Handle tare command
+    return 4;
     break;
   case SET_PID_VALUES: {
     // Handle receive PID settings command
@@ -197,8 +218,19 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
       extractionProfile.setReady(true);
       return 1;
     }
-  } break;
+    break;
+  }
 
+  case DO_HOMING_SEQUENCE: {
+    motor.homeAndZero();
+    return 1;
+    break;
+  }
+  case GOTO_POSITION_MM: {
+    motor.moveToAbsMmPosition(60);
+    return 1;
+    break;
+  }
   case START_PARTIAL_EXTRACTION:
     return 2;
     break;

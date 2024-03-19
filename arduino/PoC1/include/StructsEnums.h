@@ -9,6 +9,7 @@ enum Commands {
  */
   /* Incoming */
   SET_MOTOR_SPEED = 1,
+  GOTO_POSITION_MM = 23,
   SET_PID_VALUES = 2,
   SET_PRESSURE = 3,
   STOP = 4,
@@ -16,6 +17,7 @@ enum Commands {
   TARE = 14,
   START_PARTIAL_EXTRACTION = 15,
   START_FULL_EXTRACTION = 16,
+  DO_HOMING_SEQUENCE = 22,
 
   /* Outgoing */
   DUTY_CYCLE = 5,
@@ -27,7 +29,10 @@ enum Commands {
   SINE_PROFILE = 11,
   STATIC_PROFILE = 12,
   EXTRACTION_STARTED = 17,
-  TEMPERATURE = 18
+  TEMPERATURE = 18,
+  MOTOR_CURRENT = 19,
+  MOTOR_SPEED = 20,
+  MOTOR_POSITION = 21
 };
 
 struct Datas {
@@ -35,7 +40,7 @@ struct Datas {
   float pressure;
   float target;
   float weight;
-  float dutyCycle;
+  short dutyCycle;
   unsigned long extractionStartTime;
 
   // Temperature & Heater
@@ -43,8 +48,8 @@ struct Datas {
   bool heaterOn;
 
   // Diagnostic
-  float speed;
-  float position;
+  int speed;
+  long position;
   float motorCurrent;
 };
 

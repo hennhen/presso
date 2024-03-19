@@ -71,6 +71,11 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
     motor.stop();
     serialComm.notifyExtractionStopped();
     break;
+  case 4: {
+    // Tare
+    scale.tare();
+    delay(100);
+  }
   }
 }
 
@@ -94,21 +99,27 @@ void setup() {
   heaterController.setTarget(50);
 
   /*** TEMP TESTING ***/
-  Serial1.println("homing...");
-  motor.homeAndZero();
-  Serial1.println("homed");
-  delay(1000);
-  motor.moveRelativeMm(60);
+  // Serial1.println("homing...");
+  // motor.homeAndZero();
+  // Serial1.println("homed");
+  // delay(1000);
+  // motor.moveRelativeMm(60);
 }
 
 void loop() {
   unsigned long loopStartTime = millis();
-  // Serial1.printf("Current: %.2f\nSpeed: %d\n", motor.getCurrent(), motor.getSpeed());
-  // motor.getCurrent();
+  // motor.getSpeed()); motor.getCurrent();
 
   /* First update data. Weight and pressure is always needed */
   datas.pressure = pSensor.readPressure();
   datas.weight = scale.read();
+  datas.speed = motor.getSpeed();
+  datas.motorCurrent = motor.getCurrent();
+  datas.position = motor.getPosition();
+
+  //   Serial1.printf("Current: %.2f Speed: %d ", datas.motorCurrent,
+  //   datas.speed);
+  // Serial1.printf("Position: %d\n", datas.position);
 
   /* Control Heater if Necessary */
   if (flags.isHeating) {
@@ -132,7 +143,7 @@ void loop() {
       }
       if (flags.inPID) {
         datas.target = extProfile.getTarget(millis());
-        pidController.updateDynamic(datas.target);
+        datas.dutyCycle = pidController.updateDynamic(datas.target);
         // Serial1.println(datas.target);
       }
     } else {
@@ -141,7 +152,8 @@ void loop() {
   }
 
   /* Send and update serial */
-  serialComm.sendData(datas, true, true, true, false, true);
+  serialComm.sendData(datas, true, true, true, true, true, false, true, true,
+                      true);
   pSerial.update();
 
   /* Debug Prints */
@@ -149,6 +161,6 @@ void loop() {
   //   Serial1.printf("Weight: %f grams\n", datas.weight);
 
   /* Loop time printing */
-    // unsigned long loopEndTime = millis();
-    // Serial1.printf("Loop took %lu ms\n", loopEndTime - loopStartTime);
+  unsigned long loopEndTime = millis();
+  Serial1.printf("%lu ms\n", loopEndTime - loopStartTime);
 }

@@ -12,7 +12,7 @@ void PIDController::setReady(bool ready) { _ready = ready; }
 
 bool PIDController::isReady() { return _ready; }
 
-float PIDController::updateDynamic(float target) {
+short PIDController::updateDynamic(float target) {
   unsigned long currT = millis();
   float deltaTime = (currT - _prevT) / 1000.0; // Convert to seconds
   _prevT = currT;
@@ -34,7 +34,7 @@ float PIDController::updateDynamic(float target) {
 
   // Serial1.println(controlVariable);
 
-  _motor.setDutyCycle(controlVariable);
+  _motor.setDutyCycle(-controlVariable);
   return (controlVariable);
 }
 

@@ -74,6 +74,18 @@ class SerialCommunicator:
             packet = self.create_profile_selection_packet(*args)
         elif command == Command.START_PARTIAL_EXTRACTION:
             packet = struct.pack('<h', Command.START_PARTIAL_EXTRACTION.value)
+        elif command == Command.MOTOR_CURRENT:
+            packet = struct.pack('<h', Command.MOTOR_CURRENT.value)
+        elif command == Command.MOTOR_SPEED:
+            packet = struct.pack('<h', Command.MOTOR_SPEED.value)
+        elif command == Command.MOTOR_POSITION:
+            packet = struct.pack('<h', Command.MOTOR_POSITION.value)
+        elif command == Command.DO_HOMING_SEQUENCE:
+            packet = struct.pack('<h', Command.DO_HOMING_SEQUENCE.value)
+        elif command == Command.GOTO_EXTRACTION_POSITION:
+            packet = struct.pack('<h', Command.GOTO_EXTRACTION_POSITION.value)
+        elif command == Command.TARE:
+            packet = struct.pack('<h', Command.TARE.value)
         # Add other command cases as needed
 
         if self.serial and self.serial.is_open:
@@ -85,6 +97,9 @@ class SerialCommunicator:
             except Exception as e:
                 print(f"Error sending command: {e}")
     
+    def send_tare_request(self):
+        self.send_command(Command.TARE)
+        
     def create_pid_packet(self, p, i, d):
         packet = struct.pack('<hfff', Command.SET_PID_VALUES.value, p, i, d)
         return packet
@@ -154,16 +169,25 @@ class SerialCommunicator:
                     elif command == Command.TARGET_PRESSURE.value and len(data_decoded) == 6:
                         target_pressure_value = struct.unpack('<f', data_decoded[2:])[0]
                         return command, target_pressure_value
-                    elif command == Command.DUTY_CYCLE.value and len(data_decoded) == 6:
-                        duty_cycle_value = struct.unpack('<f', data_decoded[2:])[0]
+                    elif command == Command.DUTY_CYCLE.value and len(data_decoded) == 4:
+                        duty_cycle_value = struct.unpack('<h', data_decoded[2:])[0]
                         return command, duty_cycle_value
                     elif command == Command.TEMPERATURE.value and len(data_decoded) == 6:
                         temperature_value = struct.unpack('<f', data_decoded[2:])[0]
                         return command, temperature_value
                     elif command == Command.EXTRACTION_STARTED.value:
                         return command, None
+                    elif command == Command.MOTOR_CURRENT.value and len(data_decoded) == 6:
+                        motor_current_value = struct.unpack('<f', data_decoded[2:])[0]
+                        return command, motor_current_value
+                    elif command == Command.MOTOR_SPEED.value and len(data_decoded) == 6:
+                        motor_speed_value = struct.unpack('<f', data_decoded[2:])[0]
+                        return command, motor_speed_value
+                    elif command == Command.MOTOR_POSITION.value and len(data_decoded) == 6:
+                        motor_position_value = struct.unpack('<f', data_decoded[2:])[0]
+                        return command, motor_position_value
                     else:
-                        print("Unknown command")
+                        print(f"Unknown command: {command}")
                         return None, None
                 else:
                     print("Packet < 2: ")
@@ -175,6 +199,12 @@ class SerialCommunicator:
         else:
             print("Serial connection not open.")
             return None, None
+
+    def send_homing_sequence(self):
+        self.send_command(Command.DO_HOMING_SEQUENCE)
+
+    def send_goto_extraction_position(self):
+        self.send_command(Command.GOTO_EXTRACTION_POSITION)
 
     def close(self):
         """

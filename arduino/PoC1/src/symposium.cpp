@@ -14,7 +14,7 @@
 NAU7802 scale(NAU7802_CALIBRATION_FACTOR);
 
 ADSPressureSensor pSensor;
-RoboController motor(&Serial2, 115200);
+RoboController motor(&Serial2, 230400);
 
 const uint8_t ONE_WIRE_BUS = 4;
 const uint8_t HEATER_PIN = 12;
@@ -41,7 +41,7 @@ struct Flags {
 */
 
 void onPacketReceived(const uint8_t *buffer, size_t size) {
-  Serial1.println("receiced");
+  // Serial1.println("receiced");
   uint8_t result = serialComm.receiveCommands(buffer, size);
   switch (result) {
   case 0:
@@ -90,12 +90,21 @@ void setup() {
   scale.init();
   scale.tare();
 
-  flags.isHeating = true;
+  // flags.isHeating = true;
   heaterController.setTarget(50);
+
+  /*** TEMP TESTING ***/
+  Serial1.println("homing...");
+  motor.homeAndZero();
+  Serial1.println("homed");
+  delay(1000);
+  motor.moveRelativeMm(60);
 }
 
 void loop() {
   unsigned long loopStartTime = millis();
+  // Serial1.printf("Current: %.2f\nSpeed: %d\n", motor.getCurrent(), motor.getSpeed());
+  // motor.getCurrent();
 
   /* First update data. Weight and pressure is always needed */
   datas.pressure = pSensor.readPressure();
@@ -140,6 +149,6 @@ void loop() {
   //   Serial1.printf("Weight: %f grams\n", datas.weight);
 
   /* Loop time printing */
-  //   unsigned long loopEndTime = millis();
-  //   Serial1.printf("Loop took %lu ms\n", loopEndTime - loopStartTime);
+    // unsigned long loopEndTime = millis();
+    // Serial1.printf("Loop took %lu ms\n", loopEndTime - loopStartTime);
 }

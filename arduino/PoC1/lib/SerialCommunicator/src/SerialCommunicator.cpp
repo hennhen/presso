@@ -68,20 +68,21 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
   // Extract the command
   short command;
   memcpy(&command, buffer, sizeof(short));
-  Serial1.printf("Received command: %d\n", command);
+
+  // Serial1.printf("Received command: %d\n", command);
 
   // Switch on the command
   switch (command) {
   case SET_MOTOR_SPEED:
-    Serial1.print("set motor speed: ");
+    // Serial1.print("set motor speed: ");
     // Check if the size is correct (command + 1 float)
     if (size == sizeof(short) + sizeof(float)) {
       float speed;
       memcpy(&speed, buffer + sizeof(short), sizeof(float));
       short shortSpeed = (short)round(speed);
-      Serial1.println(shortSpeed);
+      // Serial1.println(shortSpeed);
 
-      motor.setSpeed(speed);
+      motor.setDutyCycle(speed);
       break;
     } else {
       // Invalid command

@@ -87,7 +87,7 @@ void SerialController::onPacketReceived(const uint8_t* buffer, size_t size) {
           // Check if the size is correct (command + 1 float)
           float speed;
           memcpy(&speed, buffer + sizeof(short), sizeof(float));
-          motor.setSpeed(speed);  // Assuming a method to set motor speed
+          motor.setDutyCycle(speed);  // Assuming a method to set motor speed
 
           DEBUG_PRINT("Motor speed set:");
           DEBUG_PRINT("Speed: ");

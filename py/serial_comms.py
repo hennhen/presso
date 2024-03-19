@@ -17,8 +17,10 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QTimer
 
-from arduino_comms import SerialCommunicator
-from arduino_commands import Command
+sys.path.insert(1, 'py/Symposium UI/')
+
+from serial_communicator import SerialCommunicator
+from commands_list import Command
 
 QApplication.setAttribute(QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
 

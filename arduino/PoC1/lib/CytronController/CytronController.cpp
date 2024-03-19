@@ -10,7 +10,7 @@ CytronController::CytronController(uint8_t pwmPin, uint8_t dirPin)
 bool dir = HIGH;
 short pwmValue = 0;
 
-void CytronController::setSpeed(short value) {
+void CytronController::setDutyCycle(short value) {
 
   pwmValue = value;
 

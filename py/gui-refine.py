@@ -10,9 +10,11 @@ from PyQt5.QtCore import Qt, QEvent, QTimer, QThread, pyqtSignal
 import sys
 import json
 
+sys.path.insert(1, 'py/Symposium UI/')
+
 from serial_comms import GraphLauncher, PlotWindow
-from arduino_comms import SerialCommunicator
-from arduino_commands import Command
+from serial_communicator import SerialCommunicator
+from commands_list import Command
 
 class SerialWorker(QThread):
     data_received = pyqtSignal(object, object)  # Custom signal to emit command and value
@@ -291,7 +293,7 @@ class ControlPanel(QWidget):
 
 if __name__ == '__main__':
     # Connect to the Arduino
-    arduino_serial = SerialCommunicator(baudrate=460800)
+    arduino_serial = SerialCommunicator(baudrate=250000)
 
     try:
         arduino_serial.connect_id(target_vid="1A86", target_pid="7523")

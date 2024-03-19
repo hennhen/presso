@@ -34,7 +34,7 @@ float PIDController::updateDynamic(float target) {
 
   // Serial1.println(controlVariable);
 
-  _motor.setSpeed(controlVariable);
+  _motor.setDutyCycle(controlVariable);
   return (controlVariable);
 }
 

@@ -127,7 +127,7 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
       short shortSpeed = (short)round(speed);
       DEBUG_PRINT("Speed Short:");
       DEBUG_PRINT(shortSpeed);
-      motor.setSpeed(speed);
+      motor.setDutyCycle(speed);
 
       DEBUG_PRINT("Motor speed set:");
       DEBUG_PRINT("Speed: ");

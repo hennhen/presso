@@ -20,6 +20,8 @@ class SerialController {
         HX711_Scale& _scale;
         PIDController& _pidController;
 
+        uint8_t _sendFrequency = 20; // Delay in ms
+
         void onPacketReceived(const uint8_t* buffer, size_t size);
         void sendExtractionStopped();
         void sendPressureReading(float _pressure = 0);

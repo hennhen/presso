@@ -17,8 +17,10 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QTimer
 
-from arduino_comms import SerialCommunicator
-from arduino_commands import Command
+sys.path.insert(1, 'py/Symposium UI/')
+
+from serial_communicator import SerialCommunicator
+from commands_list import Command
 
 QApplication.setAttribute(QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
 
@@ -42,6 +44,7 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(central_widget)
         layout = QtWidgets.QVBoxLayout()
         central_widget.setLayout(layout)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)  # Ensure the window is deleted when closed
 
         self.title_label = QtWidgets.QLabel()
         self.title_label.setAlignment(QtCore.Qt.AlignCenter)
@@ -49,6 +52,11 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.title_label.setText(f"P = {self.p}\n I = {self.i}\n D = {self.d}")
 
         layout.addWidget(self.title_label)
+
+        # Add stop button
+        self.stop_button = QtWidgets.QPushButton("Stop")
+        self.stop_button.clicked.connect(self.stop_communication)
+        layout.addWidget(self.stop_button)
 
         # Pressures Plot
         self.pressure_plot = pg.PlotWidget()
@@ -69,8 +77,19 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.timer = QtCore.QTimer()
         self.timer.setInterval(1)
         self.timer.timeout.connect(self.receive_serial_data)
+        print("Waiting to receive start packet")
+        while not self.receive_serial_data():
+            pass
+        print("Received start packet")
         self.timer.start()
-    
+
+    def stop_communication(self):
+        # Stop the timer to halt receiving serial data
+        self.timer.stop()
+        # Send the stop command to the Arduino
+        self.arduino_serial.send_command(Command.STOP)
+        # Optionally, reset the UI or do any additional cleanup here
+
     def setup_pressure_plot(self):
         # self.pressure_plot.setBackground("w")
 
@@ -142,6 +161,8 @@ class PlotWindow(QtWidgets.QMainWindow):
             elif command == Command.WEIGHT_READING.value:
                 # print(f"Weight Reading: {value}")
                 self.update_weight_plot(value)
+            elif command == Command.EXTRACTION_STARTED.value:
+                return True
 
     def update_pressure_plot(self, pressure):
         self.pressures.append(pressure)
@@ -160,6 +181,7 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.weight_line.setData(self.weights)
 
     def close_event(self):
+        print("closed")
         self.close()
 
 # Will be used to create new application window and graphs
@@ -168,11 +190,17 @@ class PlotWindow(QtWidgets.QMainWindow):
 class GraphLauncher():
     def __init__(self, arduino_serial, p, i, d):
         arduino_serial.send_command(Command.SET_PID_VALUES, p, i, d, 1, 0)
-        app = QtWidgets.QApplication([])
-        main = PlotWindow(arduino_serial, p, i, d)
-        main.setGeometry(50, 50, 1000, 800)
-        main.show()
-        app.exec()
+        self.app = QtWidgets.QApplication([])
+        self.main = PlotWindow(arduino_serial, p, i, d)
+        self.main.setGeometry(50, 50, 1000, 800)
+        self.main.show()
+        self.app.aboutToQuit.connect(self.close_event)
+        self.app.exec_()
+
+    def close_event(self):
+        self.arduino_serial.send_command(Command.STOP)
+        print("requested stop")
+        self.main.close_event()
 
 if __name__ == "__main__":
     

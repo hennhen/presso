@@ -1,5 +1,5 @@
 #include <Adafruit_NAU7802.h>
-#include <Wire.h>
+// #include <Wire.h>
 
 Adafruit_NAU7802 nau7802;
 

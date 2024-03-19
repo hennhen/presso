@@ -1,11 +1,13 @@
+#include "ADSPressureSensor.h"
 #include "CytronController.h"
 #include "ExtractionProfile.h"
 #include "HX711_Scale.h"
+#include "HeaterController.h"
 #include "NAU7802.h"
 #include "PIDController.h"
-#include "PressureSensor.h"
 #include "RoboController.h"
 #include <PacketSerial.h>
+#include "StructsEnums.h"
 
 #define DEBUG // Comment out this line if you don't want debug prints
 
@@ -16,8 +18,8 @@
 #endif
 
 #define pressurePin A2 // Define the pin for the pressure sensor
-#define pwmPin 6        // PWM Pin for Motor
-#define dirPin 7        // Direction Pin for Motor
+#define pwmPin 6       // PWM Pin for Motor
+#define dirPin 7       // Direction Pin for Motor
 #define LOADCELL_DOUT_PIN 20
 #define LOADCELL_SCK_PIN 21
 
@@ -34,7 +36,7 @@
 
 PacketSerial pSerial;
 
-PressureSensor pSensor(pressurePin);
+ADSPressureSensor pSensor;
 // CytronController motor(pwmPin, dirPin);
 RoboController motor(&Serial2, 115200);
 PIDController pidController(motor, pSensor);
@@ -80,28 +82,6 @@ void sendFloat(short command, float value = 0.0) {
   // DEBUG_PRINT(value);
 }
 
-enum Commands {
-  /*
-  Commands enumumeration
-  Used to identify the command sent from the host computer
-  Must match the commands in the host computer code
- */
-  /* Incoming */
-  SET_MOTOR_SPEED = 1,
-  SET_PID_VALUES = 2,
-  SET_PRESSURE = 3,
-  STOP = 4,
-
-  /* Outgoing */
-  DUTY_CYCLE = 5,
-  TARGET_PRESSURE = 6,
-  WEIGHT_READING = 7,
-  EXTRACTION_STOPPED = 8,
-  PRESSURE_READING = 9,
-  PROFILE_SELECTION = 10,
-  SINE_PROFILE = 11,
-  STATIC_PROFILE = 12,
-};
 
 void onPacketReceived(const uint8_t *buffer, size_t size) {
   /*
@@ -147,7 +127,7 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
       short shortSpeed = (short)round(speed);
       DEBUG_PRINT("Speed Short:");
       DEBUG_PRINT(shortSpeed);
-      motor.setSpeed(speed);
+      motor.setDutyCycle(speed);
 
       DEBUG_PRINT("Motor speed set:");
       DEBUG_PRINT("Speed: ");
@@ -190,7 +170,7 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
       // Start PID control
       DEBUG_PRINT("Starting extraction...");
       scale.tare();
-      pidController.setParameters(setpoint, p, i, d);
+      pidController.setParameters(p, i, d);
       extractionProfile.start(millis());
       isExtracting = true;
 
@@ -280,6 +260,7 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
 }
 
 void setup() {
+  Wire.begin();
 #ifdef DEBUG
   Serial1.begin(250000);
   DEBUG_PRINT("debug print test...");
@@ -305,18 +286,13 @@ void setup() {
 long main_loop_start_time = 0;
 
 void loop() {
-  // main_loop_start_time = millis();
   pSerial.update();
   currPressure = pSensor.readPressure();
-  // DEBUG_PRINT("hi");
-  // DEBUG_PRINT(scale.read());
+  float weight = scale.read();
+  sendFloat(WEIGHT_READING, weight);
 
-  /*  If we're extracting, do the necessary checks
-     This is to prevent spamming the serial port with data when not extracting
-   */
   if (isExtracting) {
-    /* Check if the extraction duration has been reached in the target profile
-     */
+    // Check if the extraction duration has been reached in the target profile
     if (!extractionProfile.isFinished()) {
       /* Extracting. Get the target pressure from the profile */
       float currTarget = extractionProfile.getTarget(millis());
@@ -344,7 +320,6 @@ void loop() {
       // enqueueData(TARGET_PRESSURE, currTarget);
       // enqueueData(PRESSURE_READING, currPressure);
       // enqueueData(WEIGHT_READING, scale.weight);
-
     } else {
       /* Extraction finished. Stop the motor and PID control */
       motor.stop();
@@ -365,6 +340,6 @@ void loop() {
   //   lastSendTime = millis();
   // }
 
-  delay(10);
+  delay(20);
   // DEBUG_PRINT(millis() - main_loop_start_time);
 }

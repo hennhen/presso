@@ -4,8 +4,8 @@
 
 PIDController::PIDController(MotorController &cytronMotor,
                              ADSPressureSensor &sensor)
-    : _motor(cytronMotor), _sensor(sensor), _kp(0), _ki(0),
-      _kd(0), _eIntegral(0), _ePrev(0), _eDerivative(0), _prevT(millis()),
+    : _motor(cytronMotor), _sensor(sensor), _kp(0), _ki(0), _kd(0),
+      _eIntegral(0), _ePrev(0), _eDerivative(0), _prevT(millis()),
       _ready(false) {}
 
 void PIDController::setReady(bool ready) { _ready = ready; }
@@ -14,6 +14,11 @@ bool PIDController::isReady() { return _ready; }
 
 short PIDController::updateDynamic(float target) {
   unsigned long currT = millis();
+  if (currT - _lastUpdateTime < _sampleTime) {
+    return _lastControlVariable; // Not enough time has passed since the last update
+  }
+  _lastUpdateTime = currT; // Update the last update time
+
   float deltaTime = (currT - _prevT) / 1000.0; // Convert to seconds
   _prevT = currT;
 
@@ -38,8 +43,7 @@ short PIDController::updateDynamic(float target) {
   return (controlVariable);
 }
 
-void PIDController::setParameters(float kp, float ki,
-                                  float kd) {
+void PIDController::setParameters(float kp, float ki, float kd) {
   _kp = kp;
   _ki = ki;
   _kd = kd;

@@ -77,7 +77,7 @@ void SerialCommunicator::notifyExtractionStopped() {
   sendFloat(EXTRACTION_STOPPED, 0.0f);
 }
 
-// 0=fail, 1=sucess, 2 = start partial extraction, 3 = STOP, 4 = tare
+// 0=fail, 1=sucess, 2 = start partial extraction, 3 = STOP, 4 = tare, 5 = heater off, 6 = heater on
 uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
                                             size_t size) {
   // Ensure the buffer has at least the size of a short (for the command)
@@ -89,7 +89,7 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
   short command;
   memcpy(&command, buffer, sizeof(short));
 
-  // Serial1.printf("Received command: %d\n", command);
+  Serial1.printf("Received command: %d\n", command);
 
   // Switch on the command
   switch (command) {
@@ -220,7 +220,18 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
     }
     break;
   }
-
+  case TEMPERATURE:{
+    float temp;
+    memcpy(&temp, buffer + sizeof(short), sizeof(float));
+    Serial1.println(temp);
+    heater.setTarget(temp);
+    if (temp > 0) {
+      return 6;
+    } else {
+      return 5;
+    }
+    break;
+  }
   case DO_HOMING_SEQUENCE: {
     motor.homeAndZero();
     return 1;

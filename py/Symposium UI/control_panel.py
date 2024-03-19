@@ -56,6 +56,14 @@ class ControlPanel(QWidget):
             self.motor_position_label.setText(f"Motor Position: {value:.0f}")  # Assuming value is a float
         else:
             pass
+    def set_temperature_clicked(self):
+        # Set the target temperature. If 0, display off
+        target_temperature = float(self.target_temperature_input.text())
+        if target_temperature <= 0:
+            self.target_temp_label.setText("OFF")
+        else:
+            self.target_temp_label.setText(f"Target: {target_temperature}ºC")
+        self.arduino_serial.send_command(Command.TEMPERATURE, target_temperature)
 
     def start_extraction_clicked(self):
         # Start the extraction process
@@ -84,6 +92,7 @@ class ControlPanel(QWidget):
         self.arduino_serial.send_command(Command.SET_PID_VALUES, p_value, i_value, d_value)
         self.arduino_serial.send_command(Command.START_PARTIAL_EXTRACTION)
         
+        self.live_plot_widget.clear_plots()
         self.connect_extraction_plot_signals()
         # self.arduino_serial.send_command(Command.START_EXTRACTION)
 
@@ -96,6 +105,12 @@ class ControlPanel(QWidget):
         plot_widget_layout = QVBoxLayout()
         self.live_plot_widget = LivePlotWidget(self)
         plot_widget_layout.addWidget(self.live_plot_widget)
+
+        # Massive Stop Button
+        self.stop_button = QPushButton("STOP")
+        self.stop_button.setFixedHeight(100)  # Making the button taller
+        control_panel_layout.addWidget(self.stop_button)
+        self.stop_button.clicked.connect(self.arduino_serial.send_stop_request)
 
         # TEMP BUTTONS TO CONNECT & DISCONNECT SLOTS
         # Connect and disconnect slots for temporary buttons
@@ -170,8 +185,8 @@ class ControlPanel(QWidget):
         temperature_layout.addWidget(self.current_temperature_label)
 
         # Target Temperature Input
-        target_label = QLabel("Target: OFF")
-        temperature_layout.addWidget(target_label)
+        self.target_temp_label = QLabel("Target: OFF")
+        temperature_layout.addWidget(self.target_temp_label)
         self.target_temperature_input = QLineEdit("25")  # Set default value for Target Temperature
         self.target_temperature_input.setAlignment(Qt.AlignCenter)
         temperature_layout.addWidget(self.target_temperature_input)
@@ -180,6 +195,7 @@ class ControlPanel(QWidget):
         # Set Temperature Button with center alignment
         self.set_temperature_button = QPushButton("Set Temperature")
         temperature_layout.addWidget(self.set_temperature_button)
+        self.set_temperature_button.clicked.connect(self.set_temperature_clicked)
 
         temperature_group.setLayout(temperature_layout)
         top_layout.addWidget(temperature_group)
@@ -260,6 +276,9 @@ class ControlPanel(QWidget):
         elif event.key() == Qt.Key_Down:
             print("Right arrow key released")
             self.arduino_serial.send_command(Command.SET_MOTOR_SPEED, 0)    
+        elif event.key() == Qt.Key_Space:
+            self.arduino_serial.send_command(Command.STOP)
+
     def closeEvent(self, event):
         # Override the close event to properly shut down the SerialWorker thread
         self.serial_worker.running = False

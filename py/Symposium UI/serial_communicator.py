@@ -86,6 +86,8 @@ class SerialCommunicator:
             packet = struct.pack('<h', Command.GOTO_EXTRACTION_POSITION.value)
         elif command == Command.TARE:
             packet = struct.pack('<h', Command.TARE.value)
+        elif command == Command.TEMPERATURE:
+            packet = struct.pack('<hf', Command.TEMPERATURE.value, *args)
         # Add other command cases as needed
 
         if self.serial and self.serial.is_open:
@@ -127,6 +129,9 @@ class SerialCommunicator:
     def create_stop_packet(self):
         packet = struct.pack('<h', Command.STOP.value)
         return packet
+    
+    def send_stop_request(self):
+        self.send_command(Command.STOP)
 
     def receive_response(self):
         """

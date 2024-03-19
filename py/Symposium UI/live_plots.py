@@ -38,7 +38,9 @@ class LivePlotWidget(QtWidgets.QWidget):
         self.pressure_plot.setTitle("Pressure")
         self.pressure_plot.setLabel('left', 'Pressure', units='Bar')
         self.pressure_plot.setLabel('bottom', 'Time', units='s')
+        self.pressure_plot.setYRange(0, 12)
         self.pressure_line = self.pressure_plot.plot(self.pressures, pen='r')
+        self.pressure_target_line = self.pressure_plot.plot(self.target_pressures,name="Target Pressure")
         self.layout.addWidget(self.pressure_plot)
 
         # Duty Cycle Plot
@@ -68,11 +70,17 @@ class LivePlotWidget(QtWidgets.QWidget):
             self.update_weight_plot(value)
         elif command == Command.EXTRACTION_STOPPED.value:
             self.extraction_plot_signal.emit(1)
+        elif command == Command.TARGET_PRESSURE.value:
+            self.update_target_pressure_plot(value)
         # Add other conditions for different types of data as needed
 
     def update_pressure_plot(self, pressure):
         self.pressures.append(pressure)
         self.pressure_line.setData(self.pressures)
+    
+    def update_target_pressure_plot(self, target_pressure):
+        self.target_pressures.append(target_pressure)
+        self.pressure_target_line.setData(self.target_pressures)
 
     def update_duty_cycle_plot(self, duty_cycle):
         self.duty_cycles.append(duty_cycle)
@@ -81,7 +89,15 @@ class LivePlotWidget(QtWidgets.QWidget):
     def update_weight_plot(self, weight):
         self.weights.append(weight)
         self.weight_line.setData(self.weights)
-    
+
+    def clear_plots(self):
+        self.pressures.clear()
+        self.target_pressures.clear()
+        self.duty_cycles.clear()
+        self.weights.clear()
+        self.pressure_line.clear()
+        self.duty_cycle_line.clear()
+        self.weight_line.clear()    
 
 class MainTestWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None):

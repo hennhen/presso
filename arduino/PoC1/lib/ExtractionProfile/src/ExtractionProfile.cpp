@@ -63,6 +63,7 @@ void ExtractionProfile::setSineParameters(float amplitude, float frequency,
   params.sineWaveParams.amplitude = amplitude;
   params.sineWaveParams.frequency = frequency;
   params.sineWaveParams.offset = offset;
+  extractionFinished = false;
 }
 
 void ExtractionProfile::setRampingParameters(float maxPressure,
@@ -75,6 +76,7 @@ void ExtractionProfile::setRampingParameters(float maxPressure,
 
 void ExtractionProfile::setStaticPressure(float setpoint) {
   params.staticSetpoint = setpoint;
+  extractionFinished = false;
 }
 
 void ExtractionProfile::setReady(bool ready) { _isReady = ready; }

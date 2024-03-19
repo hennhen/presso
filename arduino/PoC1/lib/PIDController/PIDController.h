@@ -17,7 +17,9 @@ public:
 private:
   MotorController &_motor;
   ADSPressureSensor &_sensor;
-
+  short _sampleTime = 20;
+  unsigned long _lastUpdateTime;
+  short _lastControlVariable;
   float _eIntegral, _ePrev, _eDerivative;
   unsigned long _prevT;
   bool _ready;

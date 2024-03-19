@@ -75,6 +75,19 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
     // Tare
     scale.tare();
     delay(100);
+    break;
+  }
+  case 5: {
+    // Heater off
+    heaterController.setTarget(0);
+    digitalWrite(HEATER_PIN, LOW);
+    flags.isHeating = false;
+    break;
+  }
+  case 6: {
+    // Heater on
+    flags.isHeating = true;
+    break;
   }
   }
 }
@@ -107,7 +120,7 @@ void setup() {
 }
 
 void loop() {
-  unsigned long loopStartTime = millis();
+  // unsigned long loopStartTime = millis();
   // motor.getSpeed()); motor.getCurrent();
 
   /* First update data. Weight and pressure is always needed */
@@ -133,8 +146,25 @@ void loop() {
     if (flags.partialExtraction) {
       /* Partial extraction logic. No heating/retraction. Directly Start PID */
 
-      /* Check for termination conditions */
+      /* Check for termination conditions and print reason for stopping */
+      bool shouldStop = false;
       if (extProfile.isFinished(currentTime)) {
+        Serial1.println("Extraction Stopped: Finished");
+        shouldStop = true;
+      } else if (datas.pressure > 12.5) {
+        Serial1.println("Extraction Stopped: Pressure too high");
+        shouldStop = true;
+      } else if (datas.motorCurrent > 2.5 && datas.pressure < 2.0) {
+        Serial1.println("Extraction Stopped: Motor current too high and pressure too low");
+        Serial1.printf("Current: %.2f Pressure: %.2f\n", datas.motorCurrent, datas.pressure);
+        shouldStop = true;
+      } else if (datas.position < 5000) {
+        Serial1.println("Extraction Stopped: Almost bottom out.");
+        shouldStop = true;
+      }
+
+      if (shouldStop) {
+        // Common stopping logic
         motor.stop();
         flags.inExtraction = false;
         flags.partialExtraction = false;
@@ -161,6 +191,6 @@ void loop() {
   //   Serial1.printf("Weight: %f grams\n", datas.weight);
 
   /* Loop time printing */
-  unsigned long loopEndTime = millis();
-  Serial1.printf("%lu ms\n", loopEndTime - loopStartTime);
+  // unsigned long loopEndTime = millis();
+  // Serial1.printf("%lu ms\n", loopEndTime - loopStartTime);
 }

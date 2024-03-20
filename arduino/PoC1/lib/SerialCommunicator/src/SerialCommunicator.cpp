@@ -169,8 +169,7 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
       switch (profileType) {
       case SINE_PROFILE: {
         // Create and set a Sine Wave profile
-        float amplitude, frequency, offset;
-        short duration;
+        float amplitude, frequency, offset, duration;
 
         // Extract the parameters.
         // Buffer starts with command short, 3 floats,
@@ -180,14 +179,14 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
         memcpy(&offset, buffer + 2 * sizeof(short) + 2 * sizeof(float),
                sizeof(float));
         memcpy(&duration, buffer + 2 * sizeof(short) + 3 * sizeof(float),
-               sizeof(short));
+               sizeof(float));
 
         Serial1.printf(
             "Sine parameters set: Amplitude: %f, Frequency: %f, Offset: %f, "
-            "Duration: %d\n",
+            "Duration: %f\n",
             amplitude, frequency, offset, duration);
 
-        extractionProfile = ExtractionProfile(SINE_WAVE, duration);
+        extractionProfile = ExtractionProfile(SINE_WAVE, static_cast<unsigned long>(duration));
         extractionProfile.setSineParameters(amplitude, frequency, offset);
         extractionProfile.setReady(true);
         break;
@@ -200,18 +199,17 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
 
       case STATIC_PROFILE: {
         // Create and set a Static profile
-        float pressure;
-        short duration;
+        float pressure, duration;
 
         // buffer starts with command short, type short, 1 float, 1 short
         memcpy(&pressure, buffer + 2 * sizeof(short), sizeof(float));
         memcpy(&duration, buffer + 2 * sizeof(short) + sizeof(float),
-               sizeof(short));
-        Serial1.printf("Static parameters set: Pressure: %f, Duration: %d\n",
+               sizeof(float));
+        Serial1.printf("Static parameters set: Pressure: %f, Duration: %f\n",
                        pressure, duration);
 
         extractionProfile = ExtractionProfile(
-            STATIC, duration); // Replace with your profile class
+            STATIC, static_cast<unsigned long>(duration)); // Replace with your profile class
         extractionProfile.setStaticPressure(pressure); // Set profile parameters
         extractionProfile.setReady(true);
         break;

@@ -46,8 +46,9 @@ void RoboController::moveToAbsEncoderPosition(unsigned long position,
 }
 
 void RoboController::moveToAbsMmPosition(float positionMm, unsigned int speed) {
+  Serial1.printf("RoboController: Moving to absolute position: %.2f mm\n", positionMm);
   uint32_t encoderPosition = positionMm * _ticksPerMm;
-  moveToAbsEncoderPosition(encoderPosition);
+  moveToAbsEncoderPosition(encoderPosition, speed);
 }
 
 void RoboController::moveRelativeMm(float distance, unsigned int speed) {

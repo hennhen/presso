@@ -83,6 +83,7 @@ void setup() {
 }
 
 unsigned long loopStartTime;
+unsigned long extractionLoopStartTime;
 
 void loop() {
   loopStartTime = millis();
@@ -108,6 +109,7 @@ void loop() {
   }
 
   if (flags.inExtraction) {
+    extractionLoopStartTime = millis();
     /* Can have partial or full extraction*/
     if (flags.partialExtraction) {
       /* Partial extraction logic. No heating/retraction. Directly Start PID */
@@ -119,7 +121,7 @@ void loop() {
       }
       if (flags.inPID) {
         // PID control logic
-        datas.target = extProfile.getTarget(millis());
+        datas.target = extProfile.getTarget(extractionLoopStartTime);
         datas.dutyCycle = pidController.updateDynamic(datas.target);
       }
     } else {
@@ -191,7 +193,7 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
 }
 
 bool extractionShouldStop() {
-  if (extProfile.isFinished(loopStartTime)) {
+  if (extProfile.isFinished(extractionLoopStartTime)) {
     Serial1.println("Extraction Stopped: Finished");
     return true;
   } else if (datas.pressure > 12.5) {

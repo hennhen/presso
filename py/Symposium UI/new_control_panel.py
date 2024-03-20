@@ -27,6 +27,11 @@ class MainUI(QMainWindow):
         self.setFocusPolicy(Qt.StrongFocus)
         self.installEventFilter(self)
         self.setFocus()
+        self.connect_extraction_plot_signals()
+        # Recieve extration end signal
+        self.live_plots_widget.extraction_plot_signal.connect(self.extraction_end_signal_received)
+
+
 
     def init_ui(self):
         # Central widget
@@ -60,6 +65,7 @@ class MainUI(QMainWindow):
         second_column.addWidget(self.custom_profile_widget)
         second_column.addLayout(self.start_stop_hbox_layout)
         second_column.addWidget(self.target_settings_widget)
+        second_column.addStretch(1)
 
         # Third vertical column
         third_column = QVBoxLayout()
@@ -74,6 +80,11 @@ class MainUI(QMainWindow):
         # Set window title and size
         self.setWindowTitle("Control Panel")
         self.resize(1200, 800)  # Adjust the size as needed
+
+    def connect_extraction_plot_signals(self):
+        self.serial_worker.data_received.connect(self.live_plots_widget.update_plots)
+    def extraction_end_signal_received(self):
+        self.serial_worker.data_received.disconnect(self.live_plots_widget.update_plots)
 
     def init_serial_worker(self):
         # Initialize the SerialWorker thread
@@ -108,7 +119,7 @@ class MainUI(QMainWindow):
         i_value = float(self.pid_settings_widget.i_line_edit.text())
         d_value = float(self.pid_settings_widget.d_line_edit.text())
         sample_time_value = float(self.pid_settings_widget.sample_time_line_edit.text())
-        duration_value = int(self.pid_settings_widget.duration_line_edit.text())
+        duration_value = float(self.pid_settings_widget.duration_line_edit.text())
 
         print(f"Start extraction: p: {p_value}, i: {i_value}, d: {d_value}, sample time: {sample_time_value}, duration: {duration_value}")
         self.arduino_serial.send_command(Command.SET_PID_VALUES, p_value, i_value, d_value, sample_time_value)
@@ -130,31 +141,37 @@ class MainUI(QMainWindow):
             }
         
         self.arduino_serial.send_command(Command.PROFILE_SELECTION, profile)
-        # self.arduino_serial.send_command(Command.START_PARTIAL_EXTRACTION)
         
-        # self.live_plot_widget.clear_plots()
-        # self.connect_extraction_plot_signals()
-        # self.arduino_serial.send_command(Command.START_EXTRACTION)
+        self.live_plots_widget.clear_plots()
+        
+        self.arduino_serial.send_command(Command.START_PARTIAL_EXTRACTION)
+        # self.arduino_serial.wait_for_extraction_start()
+        self.connect_extraction_plot_signals()
 
     def connect_buttons(self):
         self.stop_button.clicked.connect(self.arduino_serial.send_stop_request)
         self.start_button.clicked.connect(self.start_button_clicked)
 
         #region Motor Controls
-        self.motor_controls_widget.extraction_position_button.clicked.connect(lambda: self.arduino_serial.send_command(Command.TEMPERATURE, float("60.0")))
+        self.motor_controls_widget.extraction_position_button.clicked.connect(lambda: self.arduino_serial.send_command(Command.GOTO_POSITION_MM, float(60)))
         self.motor_controls_widget.up_button.pressed.connect(lambda: self.arduino_serial.send_command(Command.SET_MOTOR_SPEED, 126))
         self.motor_controls_widget.up_button.released.connect(lambda: self.arduino_serial.send_command(Command.SET_MOTOR_SPEED, 0))
         self.motor_controls_widget.down_button.pressed.connect(lambda: self.arduino_serial.send_command(Command.SET_MOTOR_SPEED, -126))
         self.motor_controls_widget.down_button.released.connect(lambda: self.arduino_serial.send_command(Command.SET_MOTOR_SPEED, 0))
         self.motor_controls_widget.homing_button.clicked.connect(self.arduino_serial.send_homing_sequence)
-        self.motor_controls_widget.heating_position.clicked.connect(lambda: self.arduino_serial.send_command(Command.GOTO_POSITION_MM, float("2.0")))
+        self.motor_controls_widget.heating_position.clicked.connect(lambda: self.arduino_serial.send_command(Command.GOTO_POSITION_MM, float(2)))
         #endregion
 
         #region Heater Scale
         self.heater_scale_live_status_widget.set_temp_button.clicked.connect(self.handle_set_temp_button_click)
         self.heater_scale_live_status_widget.tare_button.clicked.connect(self.arduino_serial.send_tare_request)
         #endregion
-        pass
+
+        #region plot control buttons
+        self.live_plots_widget.start_plotting_button.clicked.connect(self.connect_extraction_plot_signals)
+        self.live_plots_widget.stop_plotting_button.clicked.connect(self.extraction_end_signal_received)
+        self.live_plots_widget.clear_plots_button.clicked.connect(self.live_plots_widget.clear_plots)
+        #endregion
 
     def handle_set_temp_button_click(self):
         # Set the target temperature. If 0, display off

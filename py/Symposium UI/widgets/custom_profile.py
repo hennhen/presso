@@ -203,7 +203,7 @@ class ProfileMaker(FigureCanvas):
 
     """A canvas that updates itself every second with a new plot."""
 
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
+    def __init__(self, parent=None, width=10, height=8, dpi=100):
 
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = self.fig.add_subplot(111)
@@ -236,8 +236,6 @@ class ProfileMaker(FigureCanvas):
             new_point = DraggablePoint(self, new_x, new_y, size)
             self.list_points.append(new_point)
             self.updateFigure()
-
-
     def plotDraggablePoints(self, size=1):
 
         """Plot and define the 2 draggable points of the baseline"""

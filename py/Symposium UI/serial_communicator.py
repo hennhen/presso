@@ -83,7 +83,7 @@ class SerialCommunicator:
         elif command == Command.DO_HOMING_SEQUENCE:
             packet = struct.pack('<h', Command.DO_HOMING_SEQUENCE.value)
         elif command == Command.GOTO_POSITION_MM:
-            packet = struct.pack('<h', Command.GOTO_POSITION_MM.value)
+            packet = struct.pack('<hf', Command.GOTO_POSITION_MM.value, *args)
         elif command == Command.TARE:
             packet = struct.pack('<h', Command.TARE.value)
         elif command == Command.TEMPERATURE:
@@ -116,12 +116,12 @@ class SerialCommunicator:
             frequency = profile['frequency']
             offset = profile['offset']
             duration = profile['duration']
-            packet = struct.pack('<hhfffh', Command.PROFILE_SELECTION.value, 11, amplitude, frequency, offset, duration)
+            packet = struct.pack('<hhffff', Command.PROFILE_SELECTION.value, 11, amplitude, frequency, offset, duration)
             return packet
         elif type == 'static':
             setpoint = profile['setpoint']
             duration = profile['duration']
-            packet = struct.pack('<hhfh', Command.PROFILE_SELECTION.value, 12, setpoint, duration)
+            packet = struct.pack('<hhff', Command.PROFILE_SELECTION.value, 12, setpoint, duration)
             return packet
 
     def create_motor_speed_packet(self, speed):
@@ -207,7 +207,13 @@ class SerialCommunicator:
         else:
             print("Serial connection not open.")
             return None, None
-
+        
+    def wait_for_extraction_start(self):
+        while True:
+            command, value = self.receive_response()
+            if command == Command.EXTRACTION_STARTED.value:
+                return
+    
     def send_homing_sequence(self):
         self.send_command(Command.DO_HOMING_SEQUENCE)
 

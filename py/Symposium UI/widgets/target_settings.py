@@ -67,6 +67,8 @@ class ExtractionSettings(QWidget):
 
         # Set the main layout for the widget
         self.setLayout(main_layout)
+        main_layout.addStretch(1)
+
 
 
 # Test code to create a simple application window and display the ExtractionSettings widget

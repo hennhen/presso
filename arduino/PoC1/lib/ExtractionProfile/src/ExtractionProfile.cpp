@@ -10,6 +10,8 @@ void ExtractionProfile::start(unsigned long currentTime) {
 }
 
 bool ExtractionProfile::isFinished(unsigned long timeNow) {
+  // Serial1.printf("Time now: %lu, Start Time: %lu, Duration: %lu\n", timeNow,
+  //                startTime, extractionDuration);
   if (timeNow - startTime >= extractionDuration) {
     extractionFinished = true; // No target after the extraction is finished
   }

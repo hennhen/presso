@@ -1,9 +1,14 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QFormLayout, QHBoxLayout, QRadioButton, QGroupBox
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QFormLayout, QHBoxLayout, QRadioButton, QGroupBox
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt, QEvent
+from PyQt5.QtGui import QFont, QFontDatabase
 from serial_worker import SerialWorker
-from live_plots import LivePlotWidget
 from serial_communicator import SerialCommunicator
 from commands_list import Command
+from styles import GLOBAL_STYLESHEET
+import sys
+
+sys.path.insert(1, 'py/Symposium UI/widgets')
+from live_plots import LivePlotWidget
 
 class ControlPanel(QWidget):
     def __init__(self, arduino_serial: SerialCommunicator):
@@ -89,9 +94,9 @@ class ControlPanel(QWidget):
                 'duration': duration_value
             }
         
-        self.arduino_serial.send_command(Command.PROFILE_SELECTION, profile)
+        # self.arduino_serial.send_command(Command.PROFILE_SELECTION, profile)
         self.arduino_serial.send_command(Command.SET_PID_VALUES, p_value, i_value, d_value, sample_time_value)
-        self.arduino_serial.send_command(Command.START_PARTIAL_EXTRACTION)
+        # self.arduino_serial.send_command(Command.START_PARTIAL_EXTRACTION)
         
         self.live_plot_widget.clear_plots()
         self.connect_extraction_plot_signals()
@@ -111,6 +116,7 @@ class ControlPanel(QWidget):
         """ TEMPORARY BUTTONS TO CONNECT & DISCONNECT SLOTS """
         # Massive Stop Button
         self.stop_button = QPushButton("STOP")
+        self.stop_button.setObjectName("startButton")  # Set the object name to redButton
         self.stop_button.setFixedHeight(100)  # Making the button taller
         control_panel_layout.addWidget(self.stop_button)
         self.stop_button.clicked.connect(self.arduino_serial.send_stop_request)
@@ -250,7 +256,8 @@ class ControlPanel(QWidget):
     #endregion
         
         # Start button
-        self.start_button = QPushButton("Start")
+        self.start_button = QPushButton("Start", objectName="startButton")
+        # self.start_button.setObjectName("startButton")  # Set the object name to redButton
         control_panel_layout.addWidget(self.start_button)
 #endregion
         
@@ -296,10 +303,9 @@ class ControlPanel(QWidget):
 
 if __name__ == '__main__':
     # This block is for testing purposes and should be in your main.py
-    from PyQt5.QtWidgets import QApplication
-    import sys
 
     app = QApplication(sys.argv)
+    # app.setStyleSheet(GLOBAL_STYLESHEET)
     arduino_serial = SerialCommunicator(baudrate=250000, timeout=0.5, simulate=False)  # Set the correct baudrate
     try:
         arduino_serial.connect_id(target_vid="1A86", target_pid="7523")

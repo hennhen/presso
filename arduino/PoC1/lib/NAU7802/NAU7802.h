@@ -9,6 +9,10 @@ private:
     Adafruit_NAU7802 _scale;
     float _calibrationFactor;
     float _weight;
+    float _lastWeight;
+    short _averagingCountTimes = 5;
+    short _currentAverageCount = 0;
+    float _cumulative4Average = 0;
 
 public:
     NAU7802(float calibrationFactor);

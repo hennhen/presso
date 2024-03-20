@@ -3,9 +3,9 @@ from enum import Enum
 class Command(Enum):
     """ Enum for command types """
     SET_MOTOR_SPEED = 1
-    GOTO_EXTRACTION_POSITION = 23
+    # GOTO_POSITION_MM = 23
     SET_PID_VALUES = 2
-    SET_PRESSURE = 3
+    GOTO_POSITION_MM = 3
     STOP = 4
     HEATER_SETPOINT = 13
     TARE = 14

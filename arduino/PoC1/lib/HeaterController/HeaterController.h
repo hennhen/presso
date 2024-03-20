@@ -9,7 +9,8 @@ public:
     HeaterController(uint8_t oneWireBus, uint8_t heaterPin);
     void setTarget(float degreesC);
     float read();
-    void update();
+    bool update();
+    short targetReachedCount = 0;
 
 private:
     OneWire oneWire;
@@ -20,7 +21,7 @@ private:
     int resolution;
     uint8_t heaterPin;
     unsigned long millisToWait; // Stores the calculated wait time for conversion
-    void controlHeater();
+    bool controlHeater();
     void calculateWaitForConversion(); // Function to calculate wait time
 };
 

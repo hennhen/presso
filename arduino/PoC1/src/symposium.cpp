@@ -105,11 +105,12 @@ void loop() {
   }
 
   if (flags.inExtraction) {
-    /* Can have partial or full extraction*/
+    /* Can have partial or full extraction */
     if (flags.partialExtraction) {
       /* Partial extraction logic. No heating/retraction. Directly Start PID */
 
       // Check for termination conditions
+      loopStartTime = millis();
       bool shouldStop = extractionShouldStop();
       if (shouldStop) {
         executeStop();

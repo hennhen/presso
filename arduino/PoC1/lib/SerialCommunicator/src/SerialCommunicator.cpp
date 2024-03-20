@@ -135,18 +135,19 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
       pidController.setReady(true);
       Serial1.printf("PID values set. P: %f, I: %f, D: %f\n", p, i, d);
       break;
-    } else if (size == 2 * sizeof(short) + 4 * sizeof(float)) {
+    } else if (size == 2 * sizeof(short) + 3 * sizeof(float)) {
       // Sample time also set
-      float p, i, d, sampleTime;
+      float p, i, d;
+      short sampleTime;
       memcpy(&p, buffer + sizeof(short), sizeof(float));
       memcpy(&i, buffer + sizeof(short) + sizeof(float), sizeof(float));
       memcpy(&d, buffer + sizeof(short) + 2 * sizeof(float), sizeof(float));
       memcpy(&sampleTime, buffer + sizeof(short) + 3 * sizeof(float),
-             sizeof(float));
+             sizeof(short));
 
       pidController.setParameters(p, i, d, (short)sampleTime);
       pidController.setReady(true);
-      Serial1.printf("PID values set. P: %f, I: %f, D: %f, Sample Time: %f\n",
+      Serial1.printf("PID values set. P: %f, I: %f, D: %f, Sample Time: %d\n",
                      p, i, d, sampleTime);
       break;
     } else {

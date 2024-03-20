@@ -70,7 +70,7 @@ class ControlPanel(QWidget):
         p_value = float(self.p_input.text())
         i_value = float(self.i_input.text())
         d_value = float(self.d_input.text())
-        sample_time_value = float(self.sample_time_input.text())
+        sample_time_value = int(self.sample_time_input.text())
         duration_value = int(self.duration_input.text())
 
         # Extract profile parameters based on the selected radio button
@@ -169,6 +169,7 @@ class ControlPanel(QWidget):
 
         # PID Input Section
         pid_group = QGroupBox("PID settings")
+        pid_group.setMinimumWidth(200)
         pid_layout = QFormLayout()
         self.p_input = QLineEdit("100")  # Set default value for P
         self.i_input = QLineEdit("2")    # Set default value for I

@@ -38,35 +38,52 @@ class LivePlotWidget(QtWidgets.QWidget):
         self.pressure_plot = pg.PlotWidget(name='Pressure')
         self.pressure_plot.setTitle("Pressure")
         self.pressure_plot.setLabel('left', 'Pressure', units='Bar')
-        self.pressure_plot.setLabel('bottom', 'Time', units='s')
-        self.pressure_plot.setYRange(0, 12)
-        self.pressure_line = self.pressure_plot.plot(self.pressures, pen='r')
-        self.pressure_target_line = self.pressure_plot.plot(self.target_pressures,name="Target Pressure")
+        self.pressure_plot.setLabel('bottom', 'Time', units='')
+        self.pressure_plot.setYRange(0, 15)
+        self.pressure_plot.showGrid(y=True, alpha=0.5)  # Turn on grid with semi-transparency
+        self.pressure_line = self.pressure_plot.plot(self.pressures, pen=pg.mkPen('r', width=2))
+        self.pressure_target_line = self.pressure_plot.plot(self.target_pressures, name="Target Pressure", pen=pg.mkPen('g', width=2))
         self.layout.addWidget(self.pressure_plot)
 
         # Duty Cycle Plot
         self.duty_cycle_plot = pg.PlotWidget(name='Duty Cycle')
         self.duty_cycle_plot.setTitle("Duty Cycle")
         self.duty_cycle_plot.setLabel('left', 'Duty Cycle', units='%')
-        self.duty_cycle_plot.setLabel('bottom', 'Time', units='s')
-        self.duty_cycle_line = self.duty_cycle_plot.plot(self.duty_cycles, pen='y')
+        self.duty_cycle_plot.setLabel('bottom', 'Time', units='')
+        self.duty_cycle_plot.setYRange(0, 130)
+        self.duty_cycle_plot.showGrid(y=True, alpha=0.5)  # Turn on grid with semi-transparency
+        self.duty_cycle_line = self.duty_cycle_plot.plot(self.duty_cycles, pen=pg.mkPen('y', width=2))
         self.layout.addWidget(self.duty_cycle_plot)
+
+    
+        # Create a horizontal layout for the weight and motor current plots
+        self.horizontal_layout = QtWidgets.QHBoxLayout()
 
         # Weight Plot
         self.weight_plot = pg.PlotWidget(name='Weight')
         self.weight_plot.setTitle("Weight")
         self.weight_plot.setLabel('left', 'Weight', units='g')
-        self.weight_plot.setLabel('bottom', 'Time', units='s')
-        self.weight_line = self.weight_plot.plot(self.weights, pen='b')
-        self.layout.addWidget(self.weight_plot)
+        self.weight_plot.setLabel('bottom', 'Time', units='')
+       # Assuming 'viewBox' is your ViewBox instance
+
+        # Set the initial Y range to 0-12
+        self.weight_plot.setRange(yRange=[0, 200], disableAutoRange=True)
+        self.weight_plot.showGrid(y=True, alpha=0.5)  # Turn on grid with semi-transparency
+        self.weight_line = self.weight_plot.plot(self.weights, pen=pg.mkPen('b', width=2))
+        self.horizontal_layout.addWidget(self.weight_plot)
 
         # Motor Current Plot
         self.motor_current_plot = pg.PlotWidget(name='Motor Current')
         self.motor_current_plot.setTitle("Motor Current")
         self.motor_current_plot.setLabel('left', 'Current', units='A')
-        self.motor_current_plot.setLabel('bottom', 'Time', units='s')
-        self.motor_current_line = self.motor_current_plot.plot(self.currents, pen='g')
-        self.layout.addWidget(self.motor_current_plot)
+        self.motor_current_plot.setLabel('bottom', 'Time', units='')
+        self.motor_current_plot.setYRange(-0.5, 4)
+        self.motor_current_plot.showGrid(y=True, alpha=0.5)  # Turn on
+        self.motor_current_line = self.motor_current_plot.plot(self.currents, pen=pg.mkPen('g', width=2))
+        self.horizontal_layout.addWidget(self.motor_current_plot)
+
+        # Add the horizontal layout to the main layout
+        self.layout.addLayout(self.horizontal_layout)
 
     @pyqtSlot(object, object)
     def update_plots(self, command, value):

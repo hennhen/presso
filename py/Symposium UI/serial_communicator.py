@@ -103,7 +103,7 @@ class SerialCommunicator:
         self.send_command(Command.TARE)
         
     def create_pid_packet(self, p, i, d, sample_time):
-        packet = struct.pack('<hffff', Command.SET_PID_VALUES.value, p, i, d, sample_time)
+        packet = struct.pack('<hfffh', Command.SET_PID_VALUES.value, p, i, d, sample_time)
         return packet
 
     def create_profile_selection_packet(self, profile):

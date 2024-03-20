@@ -3,6 +3,8 @@
 
 #include "StructsEnums.h"
 #include <Arduino.h>
+#include <vector>
+
 
 class ExtractionProfile {
 private:
@@ -21,6 +23,7 @@ public:
   float getTarget(unsigned long currentTime);
   void reset();
 
+  void setCustomParams(const std::vector<std::pair<float, float>> &points);
   void setSineParameters(float amplitude, float frequency, float offset);
   void setRampingParameters(float maxPressure, unsigned long rampDuration,
                             unsigned long holdDuration);

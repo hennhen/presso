@@ -32,29 +32,40 @@ float ExtractionProfile::getTarget(unsigned long currentTime) {
            params.sineWaveParams.offset;
   }
 
-  case RAMPING: {
-    unsigned long elapsedTime = currentTime - startTime;
-    if (elapsedTime < params.rampingParams.rampDuration) {
-      // Ramping up
-      return (params.rampingParams.maxPressure /
-              params.rampingParams.rampDuration) *
-             elapsedTime;
-    } else if (elapsedTime < params.rampingParams.rampDuration +
-                                 params.rampingParams.holdDuration) {
-      // Holding
-      return params.rampingParams.maxPressure;
-    } else {
-      // Ramping down
-      return params.rampingParams.maxPressure -
-             (params.rampingParams.maxPressure /
-              params.rampingParams.rampDuration) *
-                 (elapsedTime - params.rampingParams.rampDuration -
-                  params.rampingParams.holdDuration);
-    }
-  }
-
   case STATIC: {
     return params.staticSetpoint;
+  }
+  case CUSTOM: {
+    // Handle case where currentTime is before the first point
+    currentTime -= startTime;
+    if (currentTime <= params.customParams.points[0].time) {
+
+      return params.customParams.points[0].pressure;
+    }
+
+    // Handle case where currentTime is after the last point
+    int lastPointIndex = params.customParams.pointCount - 1;
+    if (currentTime >=
+        params.customParams.points[lastPointIndex].time) {
+      return params.customParams.points[lastPointIndex].pressure;
+    }
+
+    // Find the two points between which currentTime falls
+    for (int i = 0; i < lastPointIndex; i++) {
+      if (currentTime >= params.customParams.points[i].time &&
+          currentTime < params.customParams.points[i + 1].time) {
+        // Perform linear interpolation
+        float timeDelta = params.customParams.points[i + 1].time -
+                          params.customParams.points[i].time;
+        float pressureDelta = params.customParams.points[i + 1].pressure -
+                              params.customParams.points[i].pressure;
+        float fraction =
+            (currentTime - params.customParams.points[i].time) /
+            timeDelta;
+        return params.customParams.points[i].pressure +
+               fraction * pressureDelta;
+      }
+    }
   }
   case NO_PROFILE: {
     Serial1.println("No profile set");
@@ -62,6 +73,32 @@ float ExtractionProfile::getTarget(unsigned long currentTime) {
   }
   }
   return 0; // Default return
+}
+
+void ExtractionProfile::setCustomParams(
+    const std::vector<std::pair<float, float>> &points) {
+  // Clear any existing points
+  std::fill(std::begin(params.customParams.points),
+            std::end(params.customParams.points), TimePressurePoint{0, 0});
+
+  // Ensure we do not exceed the maximum number of points
+  int count = points.size() > 6 ? 6 : points.size();
+  params.customParams.pointCount = count;
+
+  // Copy each point from the input vector to the params
+  for (int i = 0; i < count; i++) {
+    params.customParams.points[i].time =
+        static_cast<unsigned long>(points[i].first * 1000);
+    params.customParams.points[i].pressure = points[i].second;
+  }
+  Serial1.printf("Set %d custom points\n", count);
+  // Print the points
+  for (int i = 0; i < count; i++) {
+    Serial1.printf("Time: %d, Pressure: %f\n",
+                   params.customParams.points[i].time,
+                   params.customParams.points[i].pressure);
+  }
+  extractionFinished = false;
 }
 
 void ExtractionProfile::setSineParameters(float amplitude, float frequency,

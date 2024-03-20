@@ -13,7 +13,7 @@ from widgets.motor_controls import MotorStatus
 from widgets.heater_scale_and_statuses import HeaterScale
 from widgets.pid_settings import ExtractionSettings as PIDSettings
 from widgets.target_settings import ExtractionSettings as TargetSettings
-from widgets.custom_profile import ProfileMaker
+from widgets.custom_profile import ProfileMakerWidget
 from widgets.live_plots import LivePlotWidget
 
 class MainUI(QMainWindow):
@@ -52,7 +52,7 @@ class MainUI(QMainWindow):
 
         # Second vertical column
         second_column = QVBoxLayout()
-        self.custom_profile_widget = ProfileMaker()
+        self.custom_profile_widget = ProfileMakerWidget()
         self.target_settings_widget = TargetSettings()
         # Start and Stop bottom HGroup
         self.start_stop_hbox_layout = QHBoxLayout()
@@ -138,6 +138,11 @@ class MainUI(QMainWindow):
                 'type': 'static',
                 'setpoint': float(self.target_settings_widget.static_field.text()),
                 'duration': duration_value
+            }
+        elif self.target_settings_widget.custom_radio.isChecked():
+            profile = {
+                'type': 'custom',
+                'points' : self.custom_profile_widget.getPoints(),
             }
         
         self.arduino_serial.send_command(Command.PROFILE_SELECTION, profile)

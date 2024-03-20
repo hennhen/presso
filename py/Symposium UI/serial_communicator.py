@@ -123,6 +123,26 @@ class SerialCommunicator:
             duration = profile['duration']
             packet = struct.pack('<hhff', Command.PROFILE_SELECTION.value, 12, setpoint, duration)
             return packet
+        elif type == 'custom':
+            # We send maximum of 6 points
+            # The first float after the command short is the number of point pairs
+            # The next floats are the setpoints, in x & y
+            setpoints = profile['points']
+            # Extract the duration from the last point's x value
+            durations = [setpoints[-1][0]]  
+
+            setpoints_flattened = [val for pair in setpoints for val in pair]  # Flatten the list of tuples
+
+            num_setpoints = len(setpoints)
+
+            # h for command, second h is custom profile type, f for number of setpoints, f for each setpoint x and y
+            # h1 profile, h2 custom, f1 num of setpoints, fx
+            packet_format = '<h' + 'h' + 'f' + 'f' * num_setpoints * 2  
+            packet_values = [Command.PROFILE_SELECTION.value, Command.CUSTOM_PROFILE.value, 
+                             num_setpoints] + setpoints_flattened
+            print(packet_values)
+            packet = struct.pack(packet_format, *packet_values)
+            return packet
 
     def create_motor_speed_packet(self, speed):
         packet = struct.pack('<hf', Command.SET_MOTOR_SPEED.value, speed)

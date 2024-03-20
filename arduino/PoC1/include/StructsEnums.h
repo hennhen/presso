@@ -16,7 +16,7 @@ enum Commands {
   HEATER_SETPOINT = 13,
   TARE = 14,
   START_PARTIAL_EXTRACTION = 15,
-  START_FULL_EXTRACTION = 16,
+  CUSTOM_PROFILE = 16,
   DO_HOMING_SEQUENCE = 22,
 
   /* Outgoing */
@@ -62,32 +62,40 @@ struct Flags {
   bool homing;
 };
 
-enum TargetType {
-    NO_PROFILE,
-    SINE_WAVE,
-    RAMPING,
-    STATIC
+enum TargetType { NO_PROFILE, SINE_WAVE, CUSTOM, STATIC };
+
+struct TimePressurePoint {
+    unsigned long time;   // Time in seconds
+    float pressure; // Pressure at that time
 };
 
 // Union of all possible parameters for all target types
-// Union is used to save memory, it only allocates enough memory for the largest member
+// Union is used to save memory, it only allocates enough memory for the largest
+// member
 union Parameters {
-    struct {
-        // Sine wave parameters
-        float amplitude;
-        float frequency;
-        float offset;
-    } sineWaveParams;
+  struct {
+    // Sine wave parameters
+    float amplitude;
+    float frequency;
+    float offset;
+  } sineWaveParams;
 
-    struct {
-        // Ramp up, hold, ramp down
-        // Ramp up and down slope is the same and is calculated from the max pressure and ramp duration
-        float maxPressure;
-        unsigned long rampDuration;
-        unsigned long holdDuration;
-    } rampingParams;
+  struct {
+    // Ramp up, hold, ramp down
+    // Ramp up and down slope is the same and is calculated from the max
+    // pressure and ramp duration
+    float maxPressure;
+    unsigned long rampDuration;
+    unsigned long holdDuration;
+  } rampingParams;
 
-    float staticSetpoint;
+  struct {
+    TimePressurePoint points[6]; // Maximum of 6 points for simplicity
+    int pointCount;           // How many points are actually used
+
+  } customParams;
+
+  float staticSetpoint;
 };
 
 #endif // COMMON_H

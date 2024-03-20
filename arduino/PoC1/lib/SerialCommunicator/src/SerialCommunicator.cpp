@@ -135,8 +135,9 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
       pidController.setReady(true);
       Serial1.printf("PID values set. P: %f, I: %f, D: %f\n", p, i, d);
       break;
-    } else if (size == 2 * sizeof(short) + 4 * sizeof(float)) {
+    } else if (size == sizeof(short) + 4 * sizeof(float)) {
       // Sample time also set
+      Serial1.println("Receiving PID values with sample time");
       float p, i, d, sampleTime;
       memcpy(&p, buffer + sizeof(short), sizeof(float));
       memcpy(&i, buffer + sizeof(short) + sizeof(float), sizeof(float));
@@ -242,7 +243,10 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
     break;
   }
   case GOTO_POSITION_MM: {
-    motor.moveToAbsMmPosition(60);
+    float position;
+    memcpy(&position, buffer + sizeof(short), sizeof(float));
+    Serial1.println(position);
+    motor.moveToAbsMmPosition(position);
     return 1;
     break;
   }

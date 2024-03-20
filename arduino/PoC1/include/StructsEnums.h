@@ -9,9 +9,9 @@ enum Commands {
  */
   /* Incoming */
   SET_MOTOR_SPEED = 1,
-  GOTO_POSITION_MM = 23,
+  // GOTO_POSITION_MM = 23,
   SET_PID_VALUES = 2,
-  SET_PRESSURE = 3,
+  GOTO_POSITION_MM = 3,
   STOP = 4,
   HEATER_SETPOINT = 13,
   TARE = 14,

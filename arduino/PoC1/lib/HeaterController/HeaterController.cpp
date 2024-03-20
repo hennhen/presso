@@ -19,24 +19,36 @@ void HeaterController::calculateWaitForConversion() {
 
 void HeaterController::setTarget(float degreesC) {
   targetTemperature = degreesC;
+  targetReachedCount = 0;
 }
 
 float HeaterController::read() { return currentTemperature; }
 
-void HeaterController::controlHeater() {
-  if (currentTemperature <= targetTemperature - 0.5) {
+// Returns true if the heater is done heating
+bool HeaterController::controlHeater() {
+  // Check if the heater should be turned on or off
+  if (currentTemperature < targetTemperature) {
     digitalWrite(heaterPin, HIGH); // Turn on the heater
   } else if (currentTemperature >= targetTemperature) {
-    digitalWrite(heaterPin, LOW); // Turn off the heater
+    // If the temperature is reached, increment the counter
+    targetReachedCount++;
   }
+  // If the temperature is reached for 50 times, turn off the heater
+  if (targetReachedCount > 50) {
+    digitalWrite(heaterPin, LOW); // Turn off the heater
+    targetReachedCount = 0;
+    return true;
+  }
+  return false;
 }
 
-void HeaterController::update() {
+bool HeaterController::update() {
+  // Return true if heater is done heating
   if (millis() - lastRequestTime > millisToWait) {
     // Conversion finished.
     currentTemperature = sensors.getTempCByIndex(0);
     sensors.requestTemperaturesByIndex(0);
     lastRequestTime = millis();
   }
-  controlHeater();
+  return controlHeater();
 }

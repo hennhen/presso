@@ -1,9 +1,11 @@
 import sys
 import pyqtgraph as pg
 from PyQt5 import QtWidgets, QtCore, QtGui
-from commands_list import Command
 from PyQt5.QtCore import pyqtSlot, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication
+sys.path.insert(1, 'py/Symposium UI/')
+from commands_list import Command
+
 
 QApplication.setAttribute(QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
 

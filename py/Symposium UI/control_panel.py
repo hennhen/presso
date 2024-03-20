@@ -94,9 +94,9 @@ class ControlPanel(QWidget):
                 'duration': duration_value
             }
         
-        self.arduino_serial.send_command(Command.PROFILE_SELECTION, profile)
+        # self.arduino_serial.send_command(Command.PROFILE_SELECTION, profile)
         self.arduino_serial.send_command(Command.SET_PID_VALUES, p_value, i_value, d_value, sample_time_value)
-        self.arduino_serial.send_command(Command.START_PARTIAL_EXTRACTION)
+        # self.arduino_serial.send_command(Command.START_PARTIAL_EXTRACTION)
         
         self.live_plot_widget.clear_plots()
         self.connect_extraction_plot_signals()

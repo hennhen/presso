@@ -72,7 +72,7 @@ void setup() {
   scale.tare();
 
   // flags.isHeating = true;
-  heaterController.setTarget(50);
+  // heaterController.setTarget(50);
 
   /*** TEMP TESTING ***/
   // Serial1.println("homing...");
@@ -92,8 +92,11 @@ void loop() {
 
   /* Control Heater if Necessary */
   if (flags.isHeating) {
-    heaterController.update();
     datas.temperature = heaterController.read();
+    if(heaterController.update()){
+      // If it's true, that means we're done heating.
+      flags.isHeating = false;
+    }
   }
 
   /** Homing Sequence

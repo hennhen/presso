@@ -199,7 +199,7 @@ class DraggablePoint:
         self.point.figure.canvas.mpl_disconnect(self.cidrelease)
         self.point.figure.canvas.mpl_disconnect(self.cidmotion)
 
-class MyGraph(FigureCanvas):
+class ProfileMaker(FigureCanvas):
 
     """A canvas that updates itself every second with a new plot."""
 
@@ -271,7 +271,7 @@ class MyGraph(FigureCanvas):
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     main_window = QtWidgets.QMainWindow()  # Create the main window
-    ex = MyGraph(main_window)  # Pass the main window as the parent to MyGraph
+    ex = ProfileMaker(main_window)  # Pass the main window as the parent to MyGraph
     main_window.setCentralWidget(ex)
 
     # Create a button and set its properties

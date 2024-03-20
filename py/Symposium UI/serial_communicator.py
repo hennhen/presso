@@ -82,12 +82,14 @@ class SerialCommunicator:
             packet = struct.pack('<h', Command.MOTOR_POSITION.value)
         elif command == Command.DO_HOMING_SEQUENCE:
             packet = struct.pack('<h', Command.DO_HOMING_SEQUENCE.value)
-        elif command == Command.GOTO_EXTRACTION_POSITION:
-            packet = struct.pack('<h', Command.GOTO_EXTRACTION_POSITION.value)
+        elif command == Command.GOTO_POSITION_MM:
+            packet = struct.pack('<h', Command.GOTO_POSITION_MM.value)
         elif command == Command.TARE:
             packet = struct.pack('<h', Command.TARE.value)
         elif command == Command.TEMPERATURE:
             packet = struct.pack('<hf', Command.TEMPERATURE.value, *args)
+        elif command == Command.GOTO_POSITION_MM:
+            packet = struct.pack('<hf', Command.GOTO_POSITION_MM.value, *args)
         # Add other command cases as needed
 
         if self.serial and self.serial.is_open:
@@ -210,7 +212,7 @@ class SerialCommunicator:
         self.send_command(Command.DO_HOMING_SEQUENCE)
 
     def send_goto_extraction_position(self):
-        self.send_command(Command.GOTO_EXTRACTION_POSITION)
+        self.send_command(Command.GOTO_POSITION_MM)
 
     def close(self):
         """

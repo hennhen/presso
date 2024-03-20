@@ -24,7 +24,7 @@ class ControlPanel(QWidget):
         # Set up key event filters for manual movement
         self.installEventFilter(self)
         self.setFocus()
-    
+#region Functional Stuff
     def connect_extraction_plot_signals(self):
         self.serial_worker.data_received.connect(self.live_plot_widget.update_plots)
     def extraction_end_signal_received(self):
@@ -97,17 +97,19 @@ class ControlPanel(QWidget):
         self.live_plot_widget.clear_plots()
         self.connect_extraction_plot_signals()
         # self.arduino_serial.send_command(Command.START_EXTRACTION)
+#endregion
 
     def init_ui(self):
-        # Initialize the UI components
+        """ Initialize the UI components """ 
         main_layout = QHBoxLayout(self)
         control_panel_layout = QVBoxLayout()
         
-        # Create the plot widget layout
+        """ LIVE PLOT WIDGET """ 
         plot_widget_layout = QVBoxLayout()
         self.live_plot_widget = LivePlotWidget(self)
         plot_widget_layout.addWidget(self.live_plot_widget)
 
+        """ TEMPORARY BUTTONS TO CONNECT & DISCONNECT SLOTS """
         # Massive Stop Button
         self.stop_button = QPushButton("STOP")
         self.stop_button.setFixedHeight(100)  # Making the button taller

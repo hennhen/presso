@@ -6,7 +6,6 @@ from serial_communicator import SerialCommunicator
 from commands_list import Command
 
 class ControlPanel(QWidget):
-
     def __init__(self, arduino_serial: SerialCommunicator):
         super().__init__()
         self.arduino_serial = arduino_serial

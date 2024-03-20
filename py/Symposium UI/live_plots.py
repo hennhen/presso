@@ -18,6 +18,7 @@ class LivePlotWidget(QtWidgets.QWidget):
         self.target_pressures = []
         self.duty_cycles = []
         self.weights = []
+        self.currents = []
 
         self.init_ui()
         self.setup_plots()
@@ -59,6 +60,14 @@ class LivePlotWidget(QtWidgets.QWidget):
         self.weight_line = self.weight_plot.plot(self.weights, pen='b')
         self.layout.addWidget(self.weight_plot)
 
+        # Motor Current Plot
+        self.motor_current_plot = pg.PlotWidget(name='Motor Current')
+        self.motor_current_plot.setTitle("Motor Current")
+        self.motor_current_plot.setLabel('left', 'Current', units='A')
+        self.motor_current_plot.setLabel('bottom', 'Time', units='s')
+        self.motor_current_line = self.motor_current_plot.plot(self.currents, pen='g')
+        self.layout.addWidget(self.motor_current_plot)
+
     @pyqtSlot(object, object)
     def update_plots(self, command, value):
         # This slot will be called whenever new data is received
@@ -72,6 +81,8 @@ class LivePlotWidget(QtWidgets.QWidget):
             self.extraction_plot_signal.emit(1)
         elif command == Command.TARGET_PRESSURE.value:
             self.update_target_pressure_plot(value)
+        elif command == Command.MOTOR_CURRENT.value:
+            self.update_motor_current_plot(value)
         # Add other conditions for different types of data as needed
 
     def update_pressure_plot(self, pressure):
@@ -89,15 +100,26 @@ class LivePlotWidget(QtWidgets.QWidget):
     def update_weight_plot(self, weight):
         self.weights.append(weight)
         self.weight_line.setData(self.weights)
+    
+    def update_motor_current_plot(self, motor_current):
+        self.currents.append(motor_current)
+        self.motor_current_line.setData(self.currents)
 
     def clear_plots(self):
         self.pressures.clear()
-        self.target_pressures.clear()
-        self.duty_cycles.clear()
-        self.weights.clear()
         self.pressure_line.clear()
+
+        self.target_pressures.clear()
+        self.pressure_target_line.clear()
+        
+        self.duty_cycles.clear()
         self.duty_cycle_line.clear()
+
+        self.weights.clear()
         self.weight_line.clear()    
+        
+        self.currents.clear()
+        self.motor_current_line.clear()
 
 class MainTestWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None):

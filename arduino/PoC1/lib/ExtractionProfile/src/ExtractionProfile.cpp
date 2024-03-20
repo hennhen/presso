@@ -54,6 +54,10 @@ float ExtractionProfile::getTarget(unsigned long currentTime) {
   case STATIC: {
     return params.staticSetpoint;
   }
+  case NO_PROFILE: {
+    Serial1.println("No profile set");
+    return 0;
+  }
   }
   return 0; // Default return
 }
@@ -79,7 +83,19 @@ void ExtractionProfile::setStaticPressure(float setpoint) {
   extractionFinished = false;
 }
 
-void ExtractionProfile::setReady(bool ready) { _isReady = ready; }
+void ExtractionProfile::setReady(bool ready) {
+  extractionFinished = false;
+  _isReady = ready;
+}
+
+void ExtractionProfile::reset() {
+  _isReady = false;
+  extractionFinished = true;
+  startTime = 0;
+  type = NO_PROFILE;
+  extractionDuration = 0;
+  params = {0};
+}
 
 bool ExtractionProfile::isReady() { return _isReady; }
 

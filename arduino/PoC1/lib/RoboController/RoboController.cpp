@@ -8,6 +8,11 @@ RoboController::RoboController(HardwareSerial *roboSerial, long baudrate)
 
 void RoboController::init() { _roboClaw.begin(_baudrate); }
 
+void RoboController::stop() {
+  _roboClaw.ForwardM1(_address, 0); // Stop the motor
+}
+
+/*** Speed Controls ***/
 void RoboController::setDutyCycle(short value) {
   if (value < -126) {
     value = -126;
@@ -24,11 +29,15 @@ void RoboController::setDutyCycle(short value) {
   }
 }
 
+void RoboController::setSpeedAccel(uint32_t speed, uint32_t accel) {
+  _roboClaw.SpeedAccelM1(_address, accel, speed);
+}
+
 /*** POSITIONAL FUNCTIONS ***/
 void RoboController::setPosition(long position) {
   // Mostly used to home the motor
   _roboClaw.SetEncM1(_address, position);
-};
+}
 
 void RoboController::moveToAbsEncoderPosition(unsigned long position,
                                               unsigned int speed) {
@@ -118,8 +127,4 @@ long RoboController::getPosition() {
   } else {
     return _lastPosition;
   }
-}
-
-void RoboController::stop() {
-  _roboClaw.ForwardM1(_address, 0); // Stop the motor
 }

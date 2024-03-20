@@ -77,7 +77,8 @@ void SerialCommunicator::notifyExtractionStopped() {
   sendFloat(EXTRACTION_STOPPED, 0.0f);
 }
 
-// 0=fail, 1=sucess, 2 = start partial extraction, 3 = STOP, 4 = tare, 5 = heater off, 6 = heater on
+// 0=fail, 1=sucess, 2 = start partial extraction, 3 = STOP, 4 = tare,
+// 5 = heater off, 6 = heater on, 7 = do homing sequence
 uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
                                             size_t size) {
   // Ensure the buffer has at least the size of a short (for the command)
@@ -120,8 +121,7 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
     return 4;
     break;
   case SET_PID_VALUES: {
-    // Handle receive PID settings command
-    // Check if the size is correct (command + 5 floats)
+    // Check if packet is 3 or 4 floats (4 is with sample time)
     if (size == sizeof(short) + 3 * sizeof(float)) {
       // Create variables to hold the PID values
       float p, i, d;
@@ -133,20 +133,28 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
 
       pidController.setParameters(p, i, d);
       pidController.setReady(true);
-      { // Debug Prints
-        Serial1.print("PID values set. P: ");
-        Serial1.print(p);
-        Serial1.print("I: ");
-        Serial1.print(i);
-        Serial1.print("D: ");
-        Serial1.println(d);
-      }
+      Serial1.printf("PID values set. P: %f, I: %f, D: %f\n", p, i, d);
+      break;
+    } else if (size == 2 * sizeof(short) + 4 * sizeof(float)) {
+      // Sample time also set
+      float p, i, d, sampleTime;
+      memcpy(&p, buffer + sizeof(short), sizeof(float));
+      memcpy(&i, buffer + sizeof(short) + sizeof(float), sizeof(float));
+      memcpy(&d, buffer + sizeof(short) + 2 * sizeof(float), sizeof(float));
+      memcpy(&sampleTime, buffer + sizeof(short) + 3 * sizeof(float),
+             sizeof(float));
+
+      pidController.setParameters(p, i, d, (short)sampleTime);
+      pidController.setReady(true);
+      Serial1.printf("PID values set. P: %f, I: %f, D: %f, Sample Time: %f\n",
+                     p, i, d, sampleTime);
       break;
     } else {
       pidController.setReady(false);
       return 0;
       break;
     }
+    return 1;
   }
 
   case PROFILE_SELECTION: {
@@ -160,11 +168,11 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
       switch (profileType) {
       case SINE_PROFILE: {
         // Create and set a Sine Wave profile
-        // Extract the profile parameters
         float amplitude, frequency, offset;
         short duration;
 
-        // buffer starts with command short, type short, 3 floats, 1 short
+        // Extract the parameters.
+        // Buffer starts with command short, 3 floats,
         memcpy(&amplitude, buffer + 2 * sizeof(short), sizeof(float));
         memcpy(&frequency, buffer + 2 * sizeof(short) + sizeof(float),
                sizeof(float));
@@ -178,10 +186,9 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
             "Duration: %d\n",
             amplitude, frequency, offset, duration);
 
-        extractionProfile = ExtractionProfile(
-            SINE_WAVE, duration); // Replace with your profile class
-        extractionProfile.setSineParameters(amplitude, frequency,
-                                            offset); // Set profile parameters
+        extractionProfile = ExtractionProfile(SINE_WAVE, duration);
+        extractionProfile.setSineParameters(amplitude, frequency, offset);
+        extractionProfile.setReady(true);
         break;
       }
         // case RAMPING:
@@ -205,22 +212,20 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
         extractionProfile = ExtractionProfile(
             STATIC, duration); // Replace with your profile class
         extractionProfile.setStaticPressure(pressure); // Set profile parameters
+        extractionProfile.setReady(true);
         break;
       }
-
-        // Add cases for other profile types as needed
 
       default:
         Serial1.println("Invalid Profile Type");
         return 0;
         break;
       }
-      extractionProfile.setReady(true);
       return 1;
     }
     break;
   }
-  case TEMPERATURE:{
+  case TEMPERATURE: {
     float temp;
     memcpy(&temp, buffer + sizeof(short), sizeof(float));
     Serial1.println(temp);
@@ -233,8 +238,7 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
     break;
   }
   case DO_HOMING_SEQUENCE: {
-    motor.homeAndZero();
-    return 1;
+    return 7;
     break;
   }
   case GOTO_POSITION_MM: {

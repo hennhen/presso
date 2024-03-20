@@ -59,9 +59,11 @@ struct Flags {
   bool inPID;
   bool isHeating;
   bool tareRequested;
+  bool homing;
 };
 
 enum TargetType {
+    NO_PROFILE,
     SINE_WAVE,
     RAMPING,
     STATIC

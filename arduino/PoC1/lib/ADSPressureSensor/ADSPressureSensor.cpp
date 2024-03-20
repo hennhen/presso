@@ -3,10 +3,14 @@
 // Constructor for the ADSPressureSensor class
 ADSPressureSensor::ADSPressureSensor(uint8_t address, uint8_t gain,
                                      uint8_t dataRate)
-    : _gain(gain), _dataRate(dataRate), _ads(address) {
-  _ads.begin();
+    : _gain(gain), _dataRate(dataRate), _ads(address) {}
+
+bool ADSPressureSensor::init() {
+  bool success = false;
+  success = _ads.begin();
   _ads.setGain(_gain);
   _ads.setDataRate(_dataRate);
+  return success;
 }
 
 float ADSPressureSensor::readPressure() {

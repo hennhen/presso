@@ -102,8 +102,8 @@ class SerialCommunicator:
     def send_tare_request(self):
         self.send_command(Command.TARE)
         
-    def create_pid_packet(self, p, i, d):
-        packet = struct.pack('<hfff', Command.SET_PID_VALUES.value, p, i, d)
+    def create_pid_packet(self, p, i, d, sample_time):
+        packet = struct.pack('<hffff', Command.SET_PID_VALUES.value, p, i, d, sample_time)
         return packet
 
     def create_profile_selection_packet(self, profile):
@@ -149,6 +149,7 @@ class SerialCommunicator:
                 incoming_bytes = self.serial.read_until(b'\x00')  # Reading until zero byte
                 if len(incoming_bytes) < 2:  # At least 2 bytes (for a short command)
                     print("Packet < 2")
+                    print(incoming_bytes)
                     return None, None
 
                 data_raw = incoming_bytes[:-1]  # Exclude the trailing zero byte

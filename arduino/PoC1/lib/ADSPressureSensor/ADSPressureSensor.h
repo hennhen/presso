@@ -7,6 +7,7 @@
 class ADSPressureSensor {
 public:
   ADSPressureSensor(uint8_t address = 0x48, uint8_t gain = 0, uint8_t dataRate = 6);
+  bool init();  // Initialize the pressure sensor
   float readPressure();  // Reads and returns the pressure value in bars
 
 private:

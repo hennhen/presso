@@ -71,6 +71,8 @@ class ControlPanel(QWidget):
         p_value = float(self.p_input.text())
         i_value = float(self.i_input.text())
         d_value = float(self.d_input.text())
+        sample_time_value = float(self.sample_time_input.text())
+        duration_value = int(self.duration_input.text())
 
         # Extract profile parameters based on the selected radio button
         if self.sine_radio.isChecked():
@@ -79,17 +81,17 @@ class ControlPanel(QWidget):
                 'amplitude': float(self.amplitude_input.text()),
                 'frequency': float(self.frequency_input.text()),
                 'offset': float(self.offset_input.text()),
-                'duration': int(self.duration_input.text())
+                'duration': duration_value
             }
         elif self.static_radio.isChecked():
             profile = {
                 'type': 'static',
                 'setpoint': float(self.static_setpoint_input.text()),
-                'duration': int(self.duration_input.text())
+                'duration': duration_value
             }
         
         self.arduino_serial.send_command(Command.PROFILE_SELECTION, profile)
-        self.arduino_serial.send_command(Command.SET_PID_VALUES, p_value, i_value, d_value)
+        self.arduino_serial.send_command(Command.SET_PID_VALUES, p_value, i_value, d_value, sample_time_value)
         self.arduino_serial.send_command(Command.START_PARTIAL_EXTRACTION)
         
         self.live_plot_widget.clear_plots()
@@ -170,9 +172,13 @@ class ControlPanel(QWidget):
         self.p_input = QLineEdit("100")  # Set default value for P
         self.i_input = QLineEdit("2")    # Set default value for I
         self.d_input = QLineEdit("0")    # Set default value for D
+        self.sample_time_input = QLineEdit("0.1")  # Set default value for Sample Time
+        self.duration_input = QLineEdit("60")  # Set default value for Duration in seconds
         pid_layout.addRow("P:", self.p_input)
         pid_layout.addRow("I:", self.i_input)
         pid_layout.addRow("D:", self.d_input)
+        pid_layout.addRow("Sample Time:", self.sample_time_input)
+        pid_layout.addRow("Duration:", self.duration_input)
         pid_group.setLayout(pid_layout)
         top_layout.addWidget(pid_group)
 
@@ -234,9 +240,7 @@ class ControlPanel(QWidget):
         static_group = QGroupBox("Static Profile Parameters:")
         static_layout = QFormLayout()
         self.static_setpoint_input = QLineEdit("0")  # Set default value for Static Setpoint
-        self.duration_input = QLineEdit("60")  # Set default value for Duration in seconds
         static_layout.addRow("Setpoint:", self.static_setpoint_input)
-        static_layout.addRow("Duration:", self.duration_input)
         static_group.setLayout(static_layout)
         profile_parameters_layout.addWidget(static_group)
 

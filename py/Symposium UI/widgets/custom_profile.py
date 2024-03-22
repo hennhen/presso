@@ -21,7 +21,7 @@ class DraggablePoint:
     def __init__(self, parent, x=30, y=12, size=0.1):
 
         self.parent = parent
-        self.point = patches.Ellipse((x, y), size, size*0.5, fc='r', alpha=0.5, edgecolor='r')
+        self.point = patches.Ellipse((x, y), size*2, size*1, fc='r', alpha=0.5, edgecolor='r')
         self.x = x
         self.y = y
         parent.fig.axes[0].add_patch(self.point)
@@ -111,10 +111,6 @@ class DraggablePoint:
         self.x = self.point.center[0]
         self.y = self.point.center[1]
         
-        
-        
-        
-        
         # We check if the point is A or B        
         if self == self.parent.list_points[0]:
             # or we draw the other line of the point
@@ -199,87 +195,96 @@ class DraggablePoint:
         self.point.figure.canvas.mpl_disconnect(self.cidrelease)
         self.point.figure.canvas.mpl_disconnect(self.cidmotion)
 
-class ProfileMaker(FigureCanvas):
+class ProfileMakerWidget(QtWidgets.QWidget):
 
-    """A canvas that updates itself every second with a new plot."""
+    """A widget that includes a canvas for plotting draggable points and a button for adding new points."""
 
     def __init__(self, parent=None, width=10, height=8, dpi=100):
+        super().__init__(parent)
 
+        self.layout = QtWidgets.QVBoxLayout(self)
         self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.canvas = FigureCanvas(self.fig)
         self.axes = self.fig.add_subplot(111)
-
         self.axes.grid(True)
 
-        FigureCanvas.__init__(self, self.fig)
-        self.setParent(parent)
+        self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
+                                  QtWidgets.QSizePolicy.Expanding)
+        self.canvas.updateGeometry()
 
-        FigureCanvas.setSizePolicy(self,
-                                   QtWidgets.QSizePolicy.Expanding,
-                                   QtWidgets.QSizePolicy.Expanding)
-        FigureCanvas.updateGeometry(self)
-
-        # To store the 2 draggable points
         self.list_points = []
 
+        self.buttonBox = QtWidgets.QHBoxLayout()
 
-        self.show()
+        self.addButton = QtWidgets.QPushButton("Add Point")
+        self.addButton.clicked.connect(self.addPoint)
+        self.buttonBox.addWidget(self.addButton)
+
+        self.printButton = QtWidgets.QPushButton("Print Points")
+        self.printButton.clicked.connect(self.getPoints)
+        self.buttonBox.addWidget(self.printButton)
+
+        self.resetButton = QtWidgets.QPushButton("Reset Points")
+        self.resetButton.clicked.connect(self.resetPoints)
+        self.buttonBox.addWidget(self.resetButton)
+
+        self.layout.addLayout(self.buttonBox)
+
+        
+        self.layout.addWidget(self.canvas)
+
         self.plotDraggablePoints()
 
     def addPoint(self):
         """Add a new draggable point connected to the last point."""
         if self.list_points:
             last_point = self.list_points[-1]
-            # Assuming a fixed distance for the new point, for example (0.1, 0.1) away
             new_x = last_point.x + 1
             new_y = last_point.y + 1
-            size = 1  # Use the same size as the other points
+            size = 1
             new_point = DraggablePoint(self, new_x, new_y, size)
             self.list_points.append(new_point)
             self.updateFigure()
-    def plotDraggablePoints(self, size=1):
 
-        """Plot and define the 2 draggable points of the baseline"""
-  
-        # del(self.list_points[:])
-        self.list_points.append(DraggablePoint(self, 0.0, 0.0, size))
-        self.list_points.append(DraggablePoint(self, 5, 4, size))
-        # self.list_points.append(DraggablePoint(self, 0.5, 0.5, size))
-        # self.list_points.append(DraggablePoint(self, 0.6, 0.5, size))
-        # self.list_points.append(DraggablePoint(self, 0.7, 0.5, size))
-
+    def getPoints(self):
+        """Return the list of points."""
+        points = [(point.x, point.y) for point in self.list_points]
+        print(points)
+        return points
+    
+    def resetPoints(self):
+        """Reset the list of points."""
+        self.clearFigure()
+        self.plotDraggablePoints()
         self.updateFigure()
 
+    def plotDraggablePoints(self, size=1):
+        """Plot and define the initial draggable points of the baseline."""
+        self.list_points.append(DraggablePoint(self, 0.0, 0.0, size))
+        self.list_points.append(DraggablePoint(self, 5, 4, size))
+        self.updateFigure()
 
     def clearFigure(self):
-
-        """Clear the graph"""
-
+        """Clear the graph."""
         self.axes.clear()
         self.axes.grid(True)
         del(self.list_points[:])
         self.updateFigure()
 
-
     def updateFigure(self):
+        """Update the graph. Necessary to call after each plot."""
+        self.canvas.draw()
 
-        """Update the graph. Necessary, to call after each plot"""
-
-        self.draw()
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     main_window = QtWidgets.QMainWindow()  # Create the main window
-    ex = ProfileMaker(main_window)  # Pass the main window as the parent to MyGraph
-    main_window.setCentralWidget(ex)
+    profile_maker_widget = ProfileMakerWidget(main_window)  # Use the ProfileMakerWidget
+    main_window.setCentralWidget(profile_maker_widget)
 
-    # Create a button and set its properties
-    btn_add_point = QtWidgets.QPushButton('Add Point', main_window)
-    btn_add_point.clicked.connect(ex.addPoint)  # Connect the button to the addPoint method
-
-    # Create a layout and add the button and MyGraph to it
+    # Create a layout and add the button and ProfileMakerWidget to it
     layout = QtWidgets.QVBoxLayout()
-    layout.addWidget(btn_add_point)
-    layout.addWidget(ex)
+    layout.addWidget(profile_maker_widget)
 
     # Create a widget to hold the layout and set it as the central widget of the main window
     central_widget = QtWidgets.QWidget()

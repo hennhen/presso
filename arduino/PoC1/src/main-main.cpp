@@ -53,7 +53,7 @@ const unsigned long extractionDuration = 3000; // PID Loop timeout
 /* Placeholder profile. Will be replaced later */
 ExtractionProfile extractionProfile =
     ExtractionProfile(SINE_WAVE, extractionDuration);
-// ExtractionProfile extractionProfile = ExtractionProfile(RAMPING,
+// ExtractionProfile extractionProfile = ExtractionProfile(CUSTOM,
 // extractionDuration); ExtractionProfile extractionProfile =
 // ExtractionProfile(STATIC, extractionDuration);
 
@@ -221,7 +221,7 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
                                             offset); // Set profile parameters
         break;
       }
-        // case RAMPING:
+        // case CUSTOM:
         //   // Create and set a Ramping profile
         //   extractionProfile = MyProfile(); // Replace with your profile class
         //   extractionProfile.setRampingParameters(9.0, 2000, 2000); // Set

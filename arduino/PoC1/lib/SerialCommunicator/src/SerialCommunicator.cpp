@@ -163,7 +163,6 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
     if (size >= sizeof(short)) {
       short profileType;
       memcpy(&profileType, buffer + sizeof(short), sizeof(short));
-      Serial1.println(profileType);
 
       // Determine the profile type and set the global profile object
       switch (profileType) {
@@ -186,12 +185,13 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
             "Duration: %f\n",
             amplitude, frequency, offset, duration);
 
-        extractionProfile = ExtractionProfile(SINE_WAVE, static_cast<unsigned long>(duration));
+        extractionProfile =
+            ExtractionProfile(SINE_WAVE, static_cast<unsigned long>(duration));
         extractionProfile.setSineParameters(amplitude, frequency, offset);
         extractionProfile.setReady(true);
         break;
       }
-        // case RAMPING:
+        // case CUSTOM:
         //   // Create and set a Ramping profile
         //   extractionProfile = MyProfile(); // Replace with your profile class
         //   extractionProfile.setRampingParameters(9.0, 2000, 2000); // Set
@@ -209,12 +209,58 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
                        pressure, duration);
 
         extractionProfile = ExtractionProfile(
-            STATIC, static_cast<unsigned long>(duration)); // Replace with your profile class
+            STATIC, static_cast<unsigned long>(
+                        duration)); // Replace with your profile class
         extractionProfile.setStaticPressure(pressure); // Set profile parameters
         extractionProfile.setReady(true);
         break;
       }
 
+      case CUSTOM_PROFILE: {
+        Serial1.println("Custom profile selected");
+        // Extract the number of point pairs
+        float numPointsFloat;
+        memcpy(&numPointsFloat, buffer + 2 * sizeof(short), sizeof(float));
+        int numPoints = static_cast<int>(numPointsFloat);
+        Serial1.printf("Number of points: %d\n", numPoints);
+
+        // Check if the buffer has enough data for all points
+        if (size <
+            sizeof(short) + sizeof(float) + numPoints * 2 * sizeof(float)) {
+          Serial1.println("Not enough data for all points");
+          return 0; // Not enough data for all points
+        }
+        // Extract the points
+        std::vector<std::pair<float, float>> points;
+        for (int i = 0; i < numPoints; ++i) {
+          float x, y;
+          memcpy(&x,
+                 buffer + 2 * sizeof(short) + sizeof(float) +
+                     i * 2 * sizeof(float),
+                 sizeof(float));
+          memcpy(&y,
+                 buffer + 2 * sizeof(short) + sizeof(float) +
+                     (i * 2 + 1) * sizeof(float),
+                 sizeof(float));
+          points.push_back(std::make_pair(x, y));
+        }
+
+        // for (const auto &point : points) {
+        //   Serial1.printf("X: %f, Y: %f\n", point.first, point.second);
+        // }
+
+        // Duration is the last x value
+        float duration = 1000 * points[numPoints - 1].first;
+
+        // Cast to unsigned long
+        unsigned long custom_duration = static_cast<unsigned long>(duration);
+        Serial1.printf("Custom profile duration: %lu\n", custom_duration);
+        extractionProfile = ExtractionProfile(CUSTOM, custom_duration);
+        extractionProfile.setCustomParams(points);
+        extractionProfile.setReady(true);
+        // Assuming successful handling of the custom profile
+        break;
+      }
       default:
         Serial1.println("Invalid Profile Type");
         return 0;
@@ -252,7 +298,7 @@ uint8_t SerialCommunicator::receiveCommands(const uint8_t *buffer,
     return 2;
     break;
 
-  case START_FULL_EXTRACTION:
+  case CUSTOM_PROFILE:
     break;
   default:
     // Handle unknown command

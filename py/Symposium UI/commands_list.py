@@ -10,7 +10,7 @@ class Command(Enum):
     HEATER_SETPOINT = 13
     TARE = 14
     START_PARTIAL_EXTRACTION = 15
-    START_FULL_EXTRACTION = 16
+    CUSTOM_PROFILE = 16
     DO_HOMING_SEQUENCE = 22
 
     # Responses
